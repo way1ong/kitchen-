@@ -2056,3 +2056,72 @@ a.alt {
     transition: none !important;
   }
 }
+
+/* ── Фото страв ─────────────────────────────────────────── */
+.with-thumb {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.with-thumb-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.recipe-card .with-thumb-text {
+  gap: 10px;
+}
+.thumb {
+  flex: none;
+  display: block;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1.5px solid var(--line);
+  background: var(--surface-2);
+}
+.dish-photo {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dish-photo-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border: 2px solid var(--rim);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.dish-photo-none {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 20px 16px;
+  text-align: center;
+  color: var(--ink-2);
+  border: 2px dashed var(--line);
+  border-radius: var(--radius);
+}
+.dish-photo-cap {
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+.dish-photo-cap a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}

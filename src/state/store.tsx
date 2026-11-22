@@ -6,6 +6,7 @@ import { newSeed } from '../logic/rng';
 import { RECIPE_BY_ID } from '../data/recipes';
 import { detectLang, setLang, type Lang } from '../i18n';
 import { T } from '../i18n/strings';
+import { clearOwnPhotos } from './photos';
 
 /**
  * Стан додатку. Усе зберігається лише на цьому пристрої (localStorage):
@@ -229,6 +230,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const resetAll = useCallback(() => {
+    void clearOwnPhotos();
     const d = defaults();
     d.plan = generatePlan(d.profile, weekStart(new Date()), EXAMPLE_SEED);
     setData(d);
