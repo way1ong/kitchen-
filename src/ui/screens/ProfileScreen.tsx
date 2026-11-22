@@ -554,8 +554,14 @@ function AppearanceAndData() {
       <fieldset className="card fieldset">
         <legend>
           <Icon name="sun" size={20} />
-          Вигляд
+          Налаштування
         </legend>
+        <Toggle id="has-thermometer" checked={data.settings.thermometer} onChange={(v) => setSettings({ thermometer: v })}>
+          У мене є кухонний термометр (щуп) — показувати його першим способом перевірки
+        </Toggle>
+        <Toggle id="color-hints" checked={data.settings.colorHints} onChange={(v) => setSettings({ colorHints: v })}>
+          Показувати підказки за кольором («На вигляд»)
+        </Toggle>
         <p className="field-label">Розмір шрифту</p>
         <div className="seg wrap" role="radiogroup" aria-label="Розмір шрифту">
           {fonts.map((f) => (

@@ -62,12 +62,25 @@ describe('база рецептів', () => {
         }
       });
 
-      it('немає підказок готовності через колір', () => {
+      it('основні ознаки готовності не залежать від кольору (колір — лише в полі look)', () => {
         for (const s of r.steps) {
           const text = [s.text, s.done ?? '', s.warn ?? ''].join(' ');
           expect(findColorCues(text), `крок: «${s.text}»`).toEqual([]);
         }
         expect(findColorCues(r.tip ?? '')).toEqual([]);
+      });
+
+      it('перевірка з термометром має ще й спосіб без нього та підказку за кольором', () => {
+        for (const s of r.steps) {
+          // крок не повинен вимагати термометр, якого може не бути
+          expect(/^\s*(Встроміть|Введіть) щуп/i.test(s.text), `крок: «${s.text}»`).toBe(false);
+          if (s.look !== undefined) expect(s.look.trim().length).toBeGreaterThan(5);
+          if (s.temp) {
+            expect(s.done, `крок з temp без ознаки: «${s.text}»`).toBeTruthy();
+            expect(/термометр/i.test(s.done ?? ''), `done має працювати без термометра: «${s.done}»`).toBe(false);
+            expect(s.look, `крок з temp без підказки за кольором: «${s.text}»`).toBeTruthy();
+          }
+        }
       });
 
       it('сире м’ясо і риба — перевірка термометром', () => {

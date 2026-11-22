@@ -53,15 +53,16 @@ self.addEventListener('fetch', (e) => {
   if (url.origin !== location.origin) {
     // шрифти Google: кеш після першого завантаження
     if (url.hostname.endsWith('fonts.googleapis.com') || url.hostname.endsWith('fonts.gstatic.com')) {
-      e.respondWith(caches.open(CACHE).then((c) => c.match(req).then((hit) => hit || fetch(req).then((res) => { c.put(req, res.clone()); return res; }))));
+      e.respondWith(caches.open(CACHE).then((c) => c.match(req, { ignoreVary: true }).then((hit) => hit || fetch(req).then((res) => { c.put(req, res.clone()); return res; }))));
     }
     return;
   }
   if (req.mode === 'navigate') {
-    e.respondWith(fetch(req).catch(() => caches.match('./index.html')));
+    e.respondWith(fetch(req).catch(() => caches.match('./index.html', { ignoreVary: true })));
     return;
   }
-  e.respondWith(caches.match(req).then((hit) => hit || fetch(req)));
+  // ignoreVary: сервер може відповідати з «Vary: Origin», а скрипти-модулі запитуються з Origin
+  e.respondWith(caches.match(req, { ignoreVary: true }).then((hit) => hit || fetch(req)));
 });
 `;
       this.emitFile({ type: 'asset', fileName: 'sw.js', source: code });

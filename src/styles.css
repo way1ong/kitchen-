@@ -1171,6 +1171,55 @@ textarea {
 .callout-tip {
   border-style: dotted;
 }
+.callout-info {
+  background: var(--surface-2);
+}
+.check {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 2px solid var(--rim);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.check-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.check-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.check-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  padding: 8px 0;
+  align-items: start;
+}
+.check-item + .check-item {
+  border-top: 1px dashed var(--line);
+}
+.check-item div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.95rem;
+  min-width: 0;
+}
+.check-done > svg {
+  color: var(--accent);
+}
+.check-look > svg {
+  color: var(--ink-2);
+}
 .sticky-cta {
   position: sticky;
   bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 10px);

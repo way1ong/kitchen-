@@ -7,12 +7,12 @@ import { EQUIPMENT_SHORT, LEVEL_INFO } from '../../logic/profile';
 import { perServing, portion } from '../../logic/recipeNutrition';
 import { useStore } from '../../state/store';
 import { Callout, Checkbox, EQUIP_ICON, LevelBadge, Stepper } from '../components';
-import { Icon } from '../icons';
+import { Icon, type IconName } from '../icons';
 import { canGoBack, lastTabName } from '../nav';
 import { TimerButton } from '../timers';
 
 export function RecipeScreen({ id }: { id: string }) {
-  const { recipeCtx } = useStore();
+  const { recipeCtx, data } = useStore();
   const r = RECIPE_BY_ID[id];
   const ctx = recipeCtx && recipeCtx.id === id ? recipeCtx : null;
   const [servings, setServings] = useState<number>(ctx?.servings ?? r?.servings ?? 1);
@@ -48,8 +48,15 @@ export function RecipeScreen({ id }: { id: string }) {
 
       {ctx?.leftover ? (
         <Callout kind="temp" title="Залишки: лише розігріти">
-          Мікрохвильовка: 2–3 хв під кришкою, перемішайте на половині часу. Страва має бути гарячою по всьому об’єму —
-          термометр у центрі показує 74 °C. Розігрівайте один раз.
+          Мікрохвильовка: 2–3 хв під кришкою, перемішайте на половині часу. Страва має бути гарячою по всьому об’єму: пара
+          йде з центру, а не лише з країв (термометром — 74 °C). Розігрівайте один раз.
+        </Callout>
+      ) : null}
+
+      {r.steps.some((s) => s.temp) && !data.settings.thermometer ? (
+        <Callout kind="info" title="Термометра поки немає?" icon="thermometer">
+          У кожному кроці з м’ясом, рибою чи яйцями є перевірка без нього — розріз, текстура, час — і підказка за кольором.
+          Коли купите термометр, увімкніть «У мене є термометр» у профілі: він стане першим способом перевірки.
         </Callout>
       ) : null}
 
@@ -258,22 +265,62 @@ function StepContent({ step, recipe, index, big = false }: { step: Step; recipe:
     <>
       <p className={big ? 'step-text-big' : 'step-text'}>{step.text}</p>
       {step.timer ? <TimerButton seconds={step.timer} label={`Крок ${index + 1} · ${recipe.name}`} big={big} /> : null}
-      {step.temp ? (
-        <Callout kind="temp" title={`Термометр: не менше ${step.temp} °C`}>
-          Встроміть щуп у найтовщу частину (не торкаючись кістки чи посуду) і зачекайте, доки цифри перестануть рости.
-        </Callout>
-      ) : null}
-      {step.done ? (
-        <Callout kind="done" title="Як зрозуміти, що готово">
-          {step.done}
-        </Callout>
-      ) : null}
+      <DoneCheck step={step} />
       {step.warn ? (
         <Callout kind="warn" title="Обережно">
           {step.warn}
         </Callout>
       ) : null}
     </>
+  );
+}
+
+/**
+ * Перевірка готовності трьома способами: ознаки без інструментів (основні, не
+ * залежать від кольору), термометр і колір. Якщо термометр є — він перший.
+ */
+function DoneCheck({ step }: { step: Step }) {
+  const { data } = useStore();
+  const { thermometer, colorHints } = data.settings;
+  const look = colorHints ? step.look : undefined;
+  if (!step.temp && !look) {
+    return step.done ? (
+      <Callout kind="done" title="Як зрозуміти, що готово">
+        {step.done}
+      </Callout>
+    ) : null;
+  }
+  type Row = { key: string; icon: IconName; title: string; text: string };
+  const done: Row | null = step.done
+    ? { key: 'done', icon: 'checkCircle', title: step.temp ? 'Без термометра' : 'Ознаки', text: step.done }
+    : null;
+  const temp: Row | null = step.temp
+    ? {
+        key: 'temp',
+        icon: 'thermometer',
+        title: `Термометром: не менше ${step.temp} °C`,
+        text: thermometer
+          ? 'Щуп — у найтовщу частину, не торкаючись кістки й посуду. Чекайте, доки цифри перестануть рости.'
+          : 'Найнадійніший спосіб, коли з’явиться термометр. Поки що орієнтуйтеся на ознаки вище.',
+      }
+    : null;
+  const color: Row | null = look ? { key: 'look', icon: 'eye', title: 'На вигляд (колір)', text: look } : null;
+  const rows = (thermometer ? [temp, done, color] : [done, color, temp]).filter((r): r is Row => r !== null);
+  return (
+    <div className="check" role="group" aria-label="Як перевірити готовність">
+      <p className="check-title">Як перевірити готовність</p>
+      <ul className="check-list">
+        {rows.map((r) => (
+          <li key={r.key} className={`check-item check-${r.key}`}>
+            <Icon name={r.icon} size={22} />
+            <div>
+              <strong>{r.title}</strong>
+              <span>{r.text}</span>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

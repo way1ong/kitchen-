@@ -14,6 +14,10 @@ export interface Settings {
   /** 0 — звичайний, 1 — великий, 2 — дуже великий шрифт */
   font: 0 | 1 | 2;
   theme: 'auto' | 'light' | 'dark';
+  /** Є кухонний термометр-щуп — показувати перевірку термометром першою */
+  thermometer: boolean;
+  /** Показувати підказки за кольором («На вигляд») */
+  colorHints: boolean;
 }
 
 export interface AppData {
@@ -54,7 +58,7 @@ function defaults(): AppData {
     plan: null,
     checked: {},
     shopDays: [0, 1, 2, 3, 4, 5, 6],
-    settings: { font: 0, theme: 'auto' },
+    settings: { font: 0, theme: 'auto', thermometer: false, colorHints: true },
   };
 }
 
