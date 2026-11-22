@@ -1834,6 +1834,72 @@ body.no-scroll .timer-dock {
   gap: 6px;
 }
 
+/* ── Зголоднів ──────────────────────────────────────────── */
+.hungry-btn {
+  justify-content: flex-start;
+}
+.hunger {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.hunger-now {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.zone-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 12px 3px 10px;
+  border: 2px solid var(--rim);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  font-weight: 700;
+}
+a.alt {
+  color: var(--ink);
+  text-decoration: none;
+}
+.avoid-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.avoid-list li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  align-items: start;
+}
+.avoid-list svg {
+  color: var(--warn);
+  margin-top: 2px;
+}
+.food-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+}
+.food-group-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+.freq-dots {
+  display: inline-flex;
+  gap: 3px;
+}
+
 /* ── Широкі екрани ──────────────────────────────────────── */
 @media (min-width: 900px) {
   .screen {

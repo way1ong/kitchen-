@@ -11,6 +11,7 @@ import { computeTargets } from '../../logic/targets';
 import { planDate, planIsCurrentWeek, useStore, type RecipeContext } from '../../state/store';
 import { Banner, ConfirmButton, EquipList, LevelBadge, Meter, Sheet } from '../components';
 import { Icon } from '../icons';
+import { HungerHelper } from '../HungerHelper';
 import { go } from '../nav';
 
 /** Контекст для сторінки рецепта: скільки готувати і яка ваша порція. */
@@ -37,6 +38,7 @@ export function MenuScreen() {
   const t = useMemo(() => computeTargets(p), [p]);
   const ti = plan ? todayIndex(plan) : -1;
   const [sel, setSel] = useState(ti >= 0 ? ti : 0);
+  const [hungry, setHungry] = useState(false);
 
   if (!plan) {
     return (
@@ -122,6 +124,14 @@ export function MenuScreen() {
       <DaySummary plan={plan} sel={sel} kcal={t.kcal} protein={t.protein} fv={t.fv} />
 
       {sel === ti ? <NextMeal plan={plan} sel={sel} sched={sched} profile={p} /> : null}
+
+      <button type="button" className="btn btn-block hungry-btn" onClick={() => setHungry(true)}>
+        <Icon name="feather" />
+        Зголоднів? Що з’їсти зараз
+      </button>
+      <Sheet open={hungry} onClose={() => setHungry(false)} title="Зголоднів — що з’їсти зараз">
+        <HungerHelper />
+      </Sheet>
 
       <PrepNotes plan={plan} sel={sel} profile={p} />
 

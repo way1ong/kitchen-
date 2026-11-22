@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { LEVEL_INFO } from '../../logic/profile';
 import { LevelBars } from '../components';
+import { HungerHelper } from '../HungerHelper';
 import { Icon, type IconName } from '../icons';
 
 const TEMPS: { what: string; t: string; note?: string }[] = [
@@ -23,6 +24,18 @@ const SOURCES: { title: string; url: string }[] = [
   { title: 'British Dietetic Association — Nutrition and shift work', url: 'https://www.bda.uk.com/resource/nutrition-shift-work.html' },
   { title: 'Academy of Nutrition and Dietetics — Безпечне зберігання готової їжі', url: 'https://eatright.org/homefoodsafety/four-steps/cook/cook-once-eat-safely-throughout-the-week' },
   { title: 'Smashing Magazine — Дизайн для людей з дальтонізмом', url: 'https://www.smashingmagazine.com/2024/02/designing-for-colorblindness/' },
+  { title: 'Harvard Gazette — Чому пізня їжа підвищує ризик набору ваги (2022)', url: 'https://news.harvard.edu/gazette/story/2022/10/study-looks-at-why-late-night-eating-increases-obesity-risk' },
+  { title: 'Пізня їжа, голод і витрати енергії — Cell Metabolism, 2022', url: 'https://pubmed.ncbi.nlm.nih.gov/36198293/' },
+  { title: 'Час між вечерею і сном та рефлюкс (печія)', url: 'https://pubmed.ncbi.nlm.nih.gov/16393212/' },
+  { title: 'CSPI — Чи допомагає не їсти ввечері', url: 'https://cspinet.org/article/should-you-stop-eating-after-4-pm-if-you-want-lose-extra-pounds' },
+  { title: 'Cleveland Clinic — Справжній голод чи ні', url: 'https://health.clevelandclinic.org/decoding-your-hunger-are-you-really-hungry-or-not/' },
+  { title: 'МАВР (ВООЗ) — Червоне й оброблене м’ясо: питання і відповіді', url: 'https://www.iarc.who.int/wp-content/uploads/2018/11/Monographs-QA_Vol114.pdf' },
+  { title: 'WCRF — Обмежте червоне й оброблене м’ясо', url: 'https://www.wcrf.org/diet-activity-and-cancer/cancer-prevention-recommendations/limit-red-and-processed-meat/' },
+  { title: 'BMJ — Ультраоброблена їжа і 32 проблеми здоров’я (2024)', url: 'https://bmjgroup.com/consistent-evidence-links-ultra-processed-food-to-over-30-damaging-health-outcomes/' },
+  { title: 'ВООЗ — Солодкі напої', url: 'https://www.who.int/en/news-room/detail/11-10-2016-who-urges-global-action-to-curtail-consumption-and-health-impacts-of-sugary-drinks' },
+  { title: 'Клітковина і здоров’я — Lancet, 2019', url: 'https://pubmed.ncbi.nlm.nih.gov/30638909/' },
+  { title: 'EUFIC — Висновок EFSA щодо кофеїну', url: 'https://eufic.org/en/whats-in-food/article/efsa-opinion-on-the-safety-of-caffeine' },
+  { title: 'Cleveland Clinic — Алкоголь і сон', url: 'https://health.clevelandclinic.org/why-you-should-limit-alcohol-before-bed-for-better-sleep' },
 ];
 
 export function GuideScreen() {
@@ -159,6 +172,116 @@ export function GuideScreen() {
         </ul>
       </Section>
 
+      <Section icon="clock" title="Зголоднів між прийомами їжі">
+        <HungerHelper />
+        <h3>Чи можна їсти після 18:00 або 20:00?</h3>
+        <ul className="bullets">
+          <li>
+            Жорстке правило «після 18:00 не їсти» не дає кращого схуднення, ніж просто менше калорій за день: у дослідженнях
+            обмеження за годинником і звичайне зменшення калорій дали однаковий результат.
+          </li>
+          <li>
+            Але пізня їжа має свою ціну. Коли між вечерею і сном менше 3 годин, ризик печії (рефлюксу) помітно вищий. А в
+            дослідженні Гарварду (2022) пізні прийоми їжі посилювали голод наступного дня.
+          </li>
+          <li>
+            Тому в додатку час рахується від <b>вашого</b> сну, а не від годинника: основна їжа — за 3–4 год до сну, легкий
+            перекус — не пізніше ніж за 1–2 год. Якщо лягаєте о 23:00, то «пізно» — це після 21:00; при нічній зміні — інший
+            розклад, і порада підлаштовується під нього.
+          </li>
+        </ul>
+        <h3>Справжній голод чи ні</h3>
+        <ul className="bullets">
+          <li>
+            <b>Справжній голод</b> наростає поступово, бурчить у животі, згодиться будь-яка їжа, а після неї настає ситість.
+          </li>
+          <li>
+            <b>Емоційний голод</b> приходить раптово, хочеться саме солодкого чи жирного — часто від втоми, нудьги, стресу або
+            «за компанію» з екраном.
+          </li>
+          <li>Спрага іноді маскується під голод: склянка води і 10–15 хвилин — простий тест.</li>
+          <li>Якщо ви недавно поїли нормальну порцію, а знову тягне на їжу, найімовірніше, це не голод.</li>
+        </ul>
+        <h3>Формула перекусу</h3>
+        <p>
+          <b>Білок + клітковина, 150–200 ккал</b>: йогурт з ягодами, кисломолочний сир з огірком, яблуко з жменею горіхів,
+          овочі з хумусом. Пізно ввечері — ще менше, 100–150 ккал, і краще кисломолочне або овочі.
+        </p>
+      </Section>
+
+      <Section icon="leaf" title="Як їжа впливає на організм">
+        <p>
+          Шкоду визначає не окремий продукт, а те, як часто і скільки його їсти. Тому продукти поділено на три групи — за тим,
+          як часто їх варто їсти.
+        </p>
+        <FoodGroup dots={3} title="Щодня — основа раціону">
+          <li>
+            <b>Овочі, фрукти, ягоди</b> — клітковина, вітаміни, калій: довша ситість, краще травлення, нижчий тиск. Від 400 г на
+            день.
+          </li>
+          <li>
+            <b>Цільнозернові й бобові</b> — гречка, вівсянка, булгур, квасоля, сочевиця. Клітковина 25–29 г на день пов’язана з
+            на 15–30 % нижчим ризиком серцевих хвороб, інсульту, діабету 2 типу і раку кишківника.
+          </li>
+          <li>
+            <b>Білок</b> — птиця, риба, яйця, кисломолочний сир, йогурт, бобові: ситість і збереження м’язів під час схуднення.
+          </li>
+          <li>
+            <b>Вода</b> — основний напій.
+          </li>
+          <li>
+            <b>Горіхи й насіння</b> — жменя (20–30 г): корисні жири, але дуже калорійні.
+          </li>
+        </FoodGroup>
+        <FoodGroup dots={2} title="Помірно — кілька разів на тиждень">
+          <li>
+            <b>Червоне м’ясо</b> (яловичина, свинина) — до 350–500 г готового на тиждень (≈700–750 г сирого). ВООЗ відносить
+            його до «ймовірно канцерогенних» (група 2A): що більше, то вищий ризик раку кишківника.
+          </li>
+          <li>
+            <b>Тверді сири, вершкове масло, сметана</b> — багато насичених жирів і солі, тож невеликими порціями.
+          </li>
+          <li>
+            <b>Білий хліб, білий рис, звичайні макарони</b> — швидко перетравлюються, і голод повертається раніше, ніж після
+            цільнозернових.
+          </li>
+          <li>
+            <b>Мед, сухофрукти, соки</b> — багато цукру в малому об’ємі; сік — не заміна фруктам.
+          </li>
+          <li>
+            <b>Кава</b> — до 400 мг кофеїну на день (≈4 чашки) безпечні для здорових дорослих. Кофеїн діє годинами, тож пізно
+            ввечері краще без нього.
+          </li>
+        </FoodGroup>
+        <FoodGroup dots={1} title="Рідко — як виняток">
+          <li>
+            <b>Ковбаса, сосиски, бекон, шинка</b> (оброблене м’ясо) — ВООЗ відносить до доведено канцерогенних (група 1): кожні
+            50 г щодня ≈ +18 % до ризику раку кишківника. Плюс багато солі. Абсолютний ризик невеликий, але зростає з кількістю.
+          </li>
+          <li>
+            <b>Солодкі напої</b> — в одній банці газованки до 40 г цукру (≈10 ч. л.). ВООЗ радить менше 10 % калорій із цукру
+            (≈50 г на день), а краще до 25 г. Наслідки — зайва вага, карієс, діабет 2 типу.
+          </li>
+          <li>
+            <b>Ультраоброблена їжа</b> — фастфуд, чіпси, снеки, солодка випічка, напівфабрикати. Великий огляд у BMJ (2024)
+            пов’язав її з 32 проблемами здоров’я, зокрема з приблизно на 50 % вищим ризиком смерті від серцево-судинних хвороб і
+            вищим ризиком тривожності та діабету 2 типу. Це спостережні дані, але вони узгоджені між собою.
+          </li>
+          <li>
+            <b>Алкоголь</b> — безпечної дози немає. 7 ккал на грам, і сон гіршає, навіть якщо засинаєте швидко.
+          </li>
+          <li>
+            <b>Трансжири</b> — дешевий маргарин, фритюр, кондитерські жири: найгірші для серця, ВООЗ радить уникати їх
+            повністю.
+          </li>
+        </FoodGroup>
+        <h3>Сіль</h3>
+        <p>
+          Понад 5 г на день підвищує тиск, а з ним і ризик інсульту та інфаркту. Більша частина солі «прихована» в хлібі, сирі,
+          ковбасі, соліннях, соусах і напівфабрикатах — тому в рецептах сіль «за смаком» і небагато.
+        </p>
+      </Section>
+
       <Section icon="feather" title="Напівдієта: як це працює">
         <ul className="bullets">
           <li>
@@ -273,5 +396,24 @@ function Cue({ icon, title, children }: { icon: IconName; title: string; childre
         <p>{children}</p>
       </div>
     </li>
+  );
+}
+
+/** Як часто їсти: кружечки (заповнені/порожні) + текст — форма, а не колір. */
+function FoodGroup({ dots, title, children }: { dots: 1 | 2 | 3; title: string; children: ReactNode }) {
+  return (
+    <div className="food-group">
+      <h3 className="food-group-title">
+        <span className="freq-dots" aria-hidden="true">
+          {[0, 1, 2].map((i) => (
+            <svg key={i} width="14" height="14" viewBox="0 0 14 14">
+              <circle cx="7" cy="7" r="5.5" fill={i < dots ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" />
+            </svg>
+          ))}
+        </span>
+        {title}
+      </h3>
+      <ul className="bullets">{children}</ul>
+    </div>
   );
 }
