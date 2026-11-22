@@ -130,6 +130,8 @@ const P: Record<string, ReactNode> = {
   minus: <path d="M5 12h14" />,
   chevronLeft: <path d="M15 5l-7 7 7 7" />,
   chevronRight: <path d="M9 5l7 7-7 7" />,
+  chevronUp: <path d="M5 15l7-7 7 7" />,
+  chevronDown: <path d="M5 9l7 7 7-7" />,
   close: <path d="M6 6l12 12M18 6L6 18" />,
   copy: (
     <>
