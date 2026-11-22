@@ -13,11 +13,16 @@ import { addDays, isoDate, parseIso, weekday } from './dates';
  * обладнанням, часом, обмеженнями і тим, чи ви на роботі; підганяє
  * порцію під калорії прийому; стежить за різноманітністю, рибою
  * 2 рази на тиждень і (за бажанням) готує вечерю із запасом на обід.
+ *
+ * Меню можна скласти й самому: почати з порожнього тижня, обрати страву
+ * на будь-який прийом зі списку (або «їм у їдальні / поза домом»)
+ * і заповнити решту автоматично.
  */
 
 export interface PlanEntry {
   /** Ключ слота з розкладу (b, s1, l, s2, d, p) */
   slot: string;
+  /** id рецепта; порожній рядок — їмо поза домом (див. out) */
   recipe: string;
   /** Ваша порція (у базових порціях рецепта) */
   mult: number;
@@ -25,6 +30,11 @@ export interface PlanEntry {
   leftoverFrom?: number;
   /** Цю вечерю готуємо із запасом на обід дня з цим індексом */
   extraFor?: number;
+  /**
+   * Їмо поза домом (їдальня на роботі, кафе, у гостях): нічого не готуємо
+   * й не купуємо, а на цей прийом залишаємо орієнтовні калорії.
+   */
+  out?: { kcal: number };
 }
 
 export interface PlanDay {
@@ -47,12 +57,14 @@ const MAX_MULT = 3;
 
 const clamp = (x: number, a: number, b: number) => Math.min(b, Math.max(a, x));
 const q = (x: number) => Math.round(x * 4) / 4;
+const round10 = (x: number) => Math.round(x / 10) * 10;
 
 /** Ключ профілю — щоб помітити, що меню вже не відповідає профілю. */
 export function profileKey(p: Profile): string {
-  const { example: _example, ...rest } = p;
+  const { example: _example, canteen, ...rest } = p;
   void _example;
-  return JSON.stringify(rest);
+  // Нове поле враховуємо лише коли воно увімкнене — старі меню не стають «застарілими»
+  return JSON.stringify(canteen ? { ...rest, canteen } : rest);
 }
 
 // ── Фільтри ─────────────────────────────────────────────────────────
@@ -108,6 +120,39 @@ export function fitsSlot(r: Recipe, p: Profile, sched: DaySchedule, slot: Slot, 
   return effortMinutes(r) <= limit;
 }
 
+/** Обід у їдальні на роботі (налаштування профілю): у денну зміну цей прийом не готуємо. */
+export function canteenSlot(p: Profile, sched: DaySchedule, slot: Slot): boolean {
+  return !!p.canteen && sched.kind === 'day' && slot.type === 'lunch' && slot.atWork;
+}
+
+// ── Калорії записів ─────────────────────────────────────────────────
+
+/**
+ * Орієнтовний склад прийому поза домом, якщо обирати за правилом тарілки:
+ * половина — овочі або суп, чверть — м’ясо, риба чи яйця, чверть — гарнір.
+ */
+export function outNutrition(kcal: number): Nutrition {
+  return {
+    kcal,
+    protein: (kcal * 0.2) / 4,
+    fat: (kcal * 0.33) / 9,
+    carbs: (kcal * 0.47) / 4,
+    fiber: kcal / 100,
+    fv: 150,
+  };
+}
+
+/** Калорії й БЖВ запису меню (null — рецепт не знайдено). */
+export function entryNutrition(e: PlanEntry): Nutrition | null {
+  if (e.out) return outNutrition(e.out.kcal);
+  const r = RECIPE_BY_ID[e.recipe];
+  return r ? portion(r, e.mult) : null;
+}
+
+function outEntry(slot: string, kcal: number): PlanEntry {
+  return { slot, recipe: '', mult: 0, out: { kcal: round10(kcal) } };
+}
+
 // ── Оцінювання ──────────────────────────────────────────────────────
 
 interface PlanState {
@@ -119,6 +164,21 @@ interface PlanState {
 
 function newState(): PlanState {
   return { useCount: new Map(), lastDay: new Map(), lastMain: null, fishCount: 0 };
+}
+
+/** Стан різноманітності з усього меню, крім одного прийому. */
+function stateExcept(plan: Plan, p: Profile, dayIndex: number, slotKey: string): PlanState {
+  const st = newState();
+  plan.days.forEach((d, i) => {
+    const slots = daySchedule(p, d.weekday).slots;
+    d.entries.forEach((e) => {
+      if (i === dayIndex && e.slot === slotKey) return;
+      const r = RECIPE_BY_ID[e.recipe];
+      const s = slots.find((x) => x.key === e.slot);
+      if (r && s) remember(st, r, i, s);
+    });
+  });
+  return st;
 }
 
 export function portionFor(r: Recipe, kcal: number): number {
@@ -143,9 +203,8 @@ function proteinNeed(day: PlanDay, t: Targets, skipSlot?: string): number {
   let protein = 0;
   for (const e of day.entries) {
     if (e.slot === skipSlot) continue;
-    const r = RECIPE_BY_ID[e.recipe];
-    if (!r) continue;
-    const n = portion(r, e.mult);
+    const n = entryNutrition(e);
+    if (!n) continue;
     kcal += n.kcal;
     protein += n.protein;
   }
@@ -180,16 +239,19 @@ function score(r: Recipe, c: ScoreCtx, st: PlanState, jitter: number): number {
 
 // ── Генерація ───────────────────────────────────────────────────────
 
+export interface PlanOptions {
+  /** Порожнє меню: страви обираєте самі (обід у їдальні з профілю вже на місці). */
+  empty?: boolean;
+}
+
 export function generatePlan(
   p: Profile,
   start: Date,
   seed: number,
   recipes: Recipe[] = RECIPES,
+  opts: PlanOptions = {},
 ): Plan {
-  const rng = mulberry32(seed);
   const t = computeTargets(p);
-  const pool = recipes.filter((r) => allowedRecipe(r, p));
-  const st = newState();
   const days: PlanDay[] = [];
   const scheds: DaySchedule[] = [];
 
@@ -200,16 +262,52 @@ export function generatePlan(
     days.push({ date: isoDate(date), weekday: wd, entries: [] });
   }
 
-  for (let i = 0; i < 7; i++) {
+  if (opts.empty) {
+    days.forEach((d, i) =>
+      scheds[i].slots.forEach((s) => {
+        if (canteenSlot(p, scheds[i], s)) d.entries.push(outEntry(s.key, t.kcal * s.share));
+      }),
+    );
+  } else {
+    fillSlots(days, scheds, p, t, recipes.filter((r) => allowedRecipe(r, p)), mulberry32(seed), newState());
+  }
+  finishDays(days, scheds, t);
+
+  return {
+    id: `${isoDate(start)}-${seed}`,
+    created: Date.now(),
+    weekStart: isoDate(start),
+    seed,
+    profileKey: profileKey(p),
+    days,
+  };
+}
+
+/** Заповнює порожні прийоми їжі; те, що вже є (обране вами), лишається. */
+function fillSlots(
+  days: PlanDay[],
+  scheds: DaySchedule[],
+  p: Profile,
+  t: Targets,
+  pool: Recipe[],
+  rng: () => number,
+  st: PlanState,
+) {
+  for (let i = 0; i < days.length; i++) {
     const sched = scheds[i];
     const workday = sched.kind !== 'off';
     for (const slot of sched.slots) {
-      if (days[i].entries.some((e) => e.slot === slot.key)) continue; // вже є залишки
+      if (days[i].entries.some((e) => e.slot === slot.key)) continue; // уже обрано або є залишки
       const slotKcal = t.kcal * slot.share;
+      if (canteenSlot(p, sched, slot)) {
+        days[i].entries.push(outEntry(slot.key, slotKcal));
+        continue;
+      }
 
       // Чи варто готувати цю вечерю із запасом на завтрашній обід?
-      const nextLunch = i < 6 ? lunchSlotForLeftovers(scheds[i + 1]) : null;
-      const wantBatch = p.batch && slot.type === 'dinner' && !!nextLunch && !slot.atWork;
+      const nextLunch = i < days.length - 1 ? lunchSlotForLeftovers(p, scheds[i + 1]) : null;
+      const nextFree = !!nextLunch && !days[i + 1].entries.some((e) => e.slot === nextLunch.key);
+      const wantBatch = p.batch && slot.type === 'dinner' && nextFree && !slot.atWork;
 
       const ctx: ScoreCtx = { p, slot, slotKcal, dayIndex: i, workday, wantBatch, needDensity: proteinNeed(days[i], t) };
       const candidates = pool.filter((r) => fitsSlot(r, p, sched, slot));
@@ -247,29 +345,39 @@ export function generatePlan(
       }
     }
   }
-
-  // Порядок записів = порядок слотів; добове коригування калорій
-  for (let i = 0; i < 7; i++) {
-    const order = scheds[i].slots.map((s) => s.key);
-    days[i].entries.sort((a, b) => order.indexOf(a.slot) - order.indexOf(b.slot));
-    balanceDay(days[i], t.kcal);
-  }
-
-  return {
-    id: `${isoDate(start)}-${seed}`,
-    created: Date.now(),
-    weekStart: isoDate(start),
-    seed,
-    profileKey: profileKey(p),
-    days,
-  };
 }
 
-function lunchSlotForLeftovers(s: DaySchedule): Slot | null {
+/** Порядок записів = порядок слотів; добове коригування калорій. */
+function finishDays(days: PlanDay[], scheds: DaySchedule[], t: Targets) {
+  for (let i = 0; i < days.length; i++) {
+    sortEntries(days[i], scheds[i]);
+    balanceDay(days[i], filledTarget(days[i], scheds[i], t.kcal));
+  }
+}
+
+function sortEntries(day: PlanDay, sched: DaySchedule) {
+  const order = sched.slots.map((s) => s.key);
+  day.entries.sort((a, b) => order.indexOf(a.slot) - order.indexOf(b.slot));
+}
+
+/**
+ * Норма калорій для вже заповнених прийомів дня. Поки день заповнений
+ * не повністю, порції не «роздуваємо» під усю добову норму.
+ */
+function filledTarget(day: PlanDay, sched: DaySchedule, kcal: number): number {
+  const keys = new Set(day.entries.map((e) => e.slot));
+  if (sched.slots.every((s) => keys.has(s.key))) return kcal;
+  const total = sched.slots.reduce((sum, s) => sum + s.share, 0) || 1;
+  const filled = sched.slots.reduce((sum, s) => sum + (keys.has(s.key) ? s.share : 0), 0);
+  return (kcal * filled) / total;
+}
+
+function lunchSlotForLeftovers(p: Profile, s: DaySchedule): Slot | null {
   if (s.kind === 'off') return null;
   const lunch = s.slots.find((x) => x.type === 'lunch');
-  if (!lunch) return null;
-  // Залишки мають сенс, коли обід на роботі або в робочий день вдома (часу мало)
+  // Залишки мають сенс, коли обід на роботі або в робочий день вдома (часу мало);
+  // якщо обідаєте в їдальні — брати нічого не треба
+  if (!lunch || canteenSlot(p, s, lunch)) return null;
   return lunch;
 }
 
@@ -289,7 +397,7 @@ export function balanceDay(day: PlanDay, kcalTarget: number) {
     const diff = kcalTarget - total;
     if (Math.abs(diff) <= kcalTarget * 0.05) return;
     const adjustable = day.entries
-      .filter((e) => e.leftoverFrom === undefined)
+      .filter((e) => e.leftoverFrom === undefined && !e.out)
       .map((e) => ({ e, r: RECIPE_BY_ID[e.recipe] }))
       .filter((x) => x.r && !x.r.meals.every((m) => m === 'snack'))
       .sort((a, b) => portion(b.r, b.e.mult).kcal - portion(a.r, a.e.mult).kcal);
@@ -311,19 +419,31 @@ export function balanceDay(day: PlanDay, kcalTarget: number) {
 export function dayTotals(day: PlanDay): Nutrition {
   let n = { ...ZERO };
   for (const e of day.entries) {
-    const r = RECIPE_BY_ID[e.recipe];
-    if (r) n = addN(n, portion(r, e.mult));
+    const x = entryNutrition(e);
+    if (x) n = addN(n, x);
   }
   return n;
 }
 
-// ── Заміна страви ───────────────────────────────────────────────────
+// ── Вибір і заміна страви ───────────────────────────────────────────
 
 export interface Alternative {
   recipe: Recipe;
   mult: number;
   kcal: number;
   protein: number;
+}
+
+function scoreCtx(plan: Plan, dayIndex: number, slot: Slot, sched: DaySchedule, p: Profile, t: Targets): ScoreCtx {
+  return {
+    p,
+    slot,
+    slotKcal: t.kcal * slot.share,
+    dayIndex,
+    workday: sched.kind !== 'off',
+    wantBatch: false,
+    needDensity: proteinNeed(plan.days[dayIndex], t, slot.key),
+  };
 }
 
 /** Варіанти заміни для прийому їжі (найкращі зверху). */
@@ -339,47 +459,107 @@ export function alternatives(
   const slot = sched.slots.find((s) => s.key === slotKey);
   if (!slot) return [];
   const current = plan.days[dayIndex].entries.find((e) => e.slot === slotKey);
-  const st = newState();
-  plan.days.forEach((d, i) => {
-    const slots = daySchedule(p, d.weekday).slots;
-    d.entries.forEach((e) => {
-      if (i === dayIndex && e.slot === slotKey) return;
-      const r = RECIPE_BY_ID[e.recipe];
-      const s = slots.find((x) => x.key === e.slot);
-      if (r && s) remember(st, r, i, s);
-    });
-  });
-  const slotKcal = t.kcal * slot.share;
-  const ctx: ScoreCtx = {
-    p,
-    slot,
-    slotKcal,
-    dayIndex,
-    workday: sched.kind !== 'off',
-    wantBatch: false,
-    needDensity: proteinNeed(plan.days[dayIndex], t, slotKey),
-  };
+  const st = stateExcept(plan, p, dayIndex, slotKey);
+  const ctx = scoreCtx(plan, dayIndex, slot, sched, p, t);
   return RECIPES.filter((r) => r.id !== current?.recipe && allowedRecipe(r, p) && fitsSlot(r, p, sched, slot))
     .map((r) => ({ r, s: score(r, ctx, st, 0.5) }))
     .sort((a, b) => b.s - a.s)
     .slice(0, limit)
     .map(({ r }) => {
-      const mult = portionFor(r, slotKcal);
+      const mult = portionFor(r, ctx.slotKcal);
       const n = portion(r, mult);
       return { recipe: r, mult, kcal: n.kcal, protein: n.protein };
     });
 }
 
-/** Замінює страву; акуратно розв’язує зв’язок «вечеря → залишки на обід». */
-export function swapEntry(plan: Plan, dayIndex: number, slotKey: string, recipeId: string, p: Profile): Plan {
+/** Чому страва не зовсім підходить: складніша за ваш рівень, довша за ваш час, не взяти з собою. */
+export type OptionNote = 'level' | 'time' | 'portable';
+
+export interface SlotOption extends Alternative {
+  /** Підходить за рівнем, часом і (на роботі) — можна взяти з собою */
+  fits: boolean;
+  notes: OptionNote[];
+  /** Ця страва вже стоїть на цьому прийомі */
+  current: boolean;
+}
+
+/**
+ * Усі страви, які можна обрати на прийом їжі: спершу ті, що підходять
+ * найкраще (за калоріями, білком, різноманітністю і вашим часом), далі —
+ * інші страви цього типу з поясненням, чим вони не підходять.
+ * Обмеження (вегетаріанство, алергени, «не їм») і обладнання — завжди враховані.
+ */
+export function slotOptions(plan: Plan, dayIndex: number, slotKey: string, p: Profile): SlotOption[] {
+  const day = plan.days[dayIndex];
+  if (!day) return [];
+  const t = computeTargets(p);
+  const sched = daySchedule(p, day.weekday);
+  const slot = sched.slots.find((s) => s.key === slotKey);
+  if (!slot) return [];
+  const current = day.entries.find((e) => e.slot === slotKey);
+  const st = stateExcept(plan, p, dayIndex, slotKey);
+  const ctx = scoreCtx(plan, dayIndex, slot, sched, p, t);
+  const anyLevel: Profile = { ...p, maxLevel: 3 };
+  return RECIPES.filter((r) => r.meals.includes(slot.type) && allowedRecipe(r, anyLevel))
+    .map((r) => {
+      const notes: OptionNote[] = [];
+      if (r.level > p.maxLevel) notes.push('level');
+      if (slot.atWork && !portable(r, p)) notes.push('portable');
+      else if (!fitsSlot(r, p, sched, slot)) notes.push('time');
+      const mult = portionFor(r, ctx.slotKcal);
+      const n = portion(r, mult);
+      return {
+        recipe: r,
+        mult,
+        kcal: n.kcal,
+        protein: n.protein,
+        fits: notes.length === 0,
+        notes,
+        current: !!current && !current.out && current.recipe === r.id,
+        s: score(r, ctx, st, 0.5),
+      };
+    })
+    .sort((a, b) => Number(b.fits) - Number(a.fits) || b.s - a.s)
+    .map(({ s: _s, ...o }) => o);
+}
+
+/**
+ * Дні тижня з таким самим прийомом їжі, як у цьому дні: той самий слот і тип,
+ * і так само вдома або на роботі (сам день — теж у списку).
+ */
+export function matchingDays(plan: Plan, dayIndex: number, slotKey: string, p: Profile): number[] {
+  const day = plan.days[dayIndex];
+  if (!day) return [];
+  const base = daySchedule(p, day.weekday).slots.find((s) => s.key === slotKey);
+  if (!base) return [];
+  return plan.days.flatMap((d, i) => {
+    const s = daySchedule(p, d.weekday).slots.find((x) => x.key === slotKey);
+    return s && s.type === base.type && s.atWork === base.atWork ? [i] : [];
+  });
+}
+
+/** Вибір на прийом їжі: рецепт, «їм поза домом» або прибрати з меню (null). */
+export type MealChoice = { recipe: string } | { out: true } | null;
+
+/** Ставить страву (або «поза домом») на прийом їжі; акуратно розв’язує зв’язок «вечеря → залишки на обід». */
+export function setEntry(plan: Plan, dayIndex: number, slotKey: string, choice: MealChoice, p: Profile): Plan {
   const next: Plan = structuredCloneSafe(plan);
   const t = computeTargets(p);
   const day = next.days[dayIndex];
+  if (!day) return plan;
   const sched = daySchedule(p, day.weekday);
   const slot = sched.slots.find((s) => s.key === slotKey);
-  const entry = day.entries.find((e) => e.slot === slotKey);
-  const r = RECIPE_BY_ID[recipeId];
-  if (!slot || !entry || !r) return plan;
+  if (!slot) return plan;
+  const r = choice && 'recipe' in choice ? RECIPE_BY_ID[choice.recipe] : undefined;
+  if (choice && 'recipe' in choice && !r) return plan;
+
+  let entry = day.entries.find((e) => e.slot === slotKey);
+  if (!entry) {
+    if (!choice) return plan;
+    entry = { slot: slotKey, recipe: '', mult: 0 };
+    day.entries.push(entry);
+    sortEntries(day, sched);
+  }
 
   // Якщо це були залишки — відв’язуємо від вечері
   if (entry.leftoverFrom !== undefined) {
@@ -387,36 +567,91 @@ export function swapEntry(plan: Plan, dayIndex: number, slotKey: string, recipeI
     if (src) delete src.extraFor;
     delete entry.leftoverFrom;
   }
-  entry.recipe = recipeId;
-  entry.mult = portionFor(r, t.kcal * slot.share);
+
+  const slotKcal = t.kcal * slot.share;
+  if (!choice) {
+    day.entries.splice(day.entries.indexOf(entry), 1);
+  } else if (r) {
+    delete entry.out;
+    entry.recipe = r.id;
+    entry.mult = portionFor(r, slotKcal);
+  } else {
+    entry.recipe = '';
+    entry.mult = 0;
+    entry.out = { kcal: round10(slotKcal) };
+  }
 
   // Якщо це вечеря із запасом — оновлюємо залишки або відв’язуємо їх
-  if (entry.extraFor !== undefined) {
-    const lunchDay = next.days[entry.extraFor];
-    const lunchSched = daySchedule(p, lunchDay.weekday);
-    const lunch = lunchDay.entries.find((e) => e.leftoverFrom === dayIndex);
-    const lunchSlot = lunch && lunchSched.slots.find((s) => s.key === lunch.slot);
-    if (lunch && lunchSlot) {
-      const ok =
-        r.tags.includes('batch') &&
-        (r.fridgeDays ?? 0) >= 2 &&
-        fitsSlot(r, p, lunchSched, lunchSlot, true) &&
-        (!lunchSlot.atWork || portable(r, p));
-      if (ok) {
-        lunch.recipe = recipeId;
-        lunch.mult = portionFor(r, t.kcal * lunchSlot.share);
-      } else {
-        delete lunch.leftoverFrom;
-        delete entry.extraFor;
-        const alt = alternatives(next, next.days.indexOf(lunchDay), lunch.slot, p, 1)[0];
-        if (alt) {
-          lunch.recipe = alt.recipe.id;
-          lunch.mult = alt.mult;
-        }
-      }
+  if (entry.extraFor !== undefined) relinkLeftovers(next, dayIndex, entry, r, p, t);
+  balanceDay(day, filledTarget(day, sched, t.kcal));
+  return next;
+}
+
+/** Замінює страву (див. setEntry). */
+export function swapEntry(plan: Plan, dayIndex: number, slotKey: string, recipeId: string, p: Profile): Plan {
+  return setEntry(plan, dayIndex, slotKey, { recipe: recipeId }, p);
+}
+
+function relinkLeftovers(next: Plan, dayIndex: number, dinner: PlanEntry, r: Recipe | undefined, p: Profile, t: Targets) {
+  const lunchIndex = dinner.extraFor!;
+  const lunchDay = next.days[lunchIndex];
+  const lunch = lunchDay?.entries.find((e) => e.leftoverFrom === dayIndex);
+  const lunchSched = lunchDay ? daySchedule(p, lunchDay.weekday) : undefined;
+  const lunchSlot = lunch && lunchSched?.slots.find((s) => s.key === lunch.slot);
+  if (!lunchDay || !lunch || !lunchSched || !lunchSlot) {
+    delete dinner.extraFor;
+    return;
+  }
+  const ok =
+    !!r &&
+    r.tags.includes('batch') &&
+    (r.fridgeDays ?? 0) >= 2 &&
+    fitsSlot(r, p, lunchSched, lunchSlot, true) &&
+    (!lunchSlot.atWork || portable(r, p));
+  if (ok && r) {
+    lunch.recipe = r.id;
+    lunch.mult = portionFor(r, t.kcal * lunchSlot.share);
+  } else {
+    delete lunch.leftoverFrom;
+    delete dinner.extraFor;
+    const alt = alternatives(next, lunchIndex, lunch.slot, p, 1)[0];
+    if (alt) {
+      lunch.recipe = alt.recipe.id;
+      lunch.mult = alt.mult;
     }
   }
-  balanceDay(day, t.kcal);
+  balanceDay(lunchDay, filledTarget(lunchDay, lunchSched, t.kcal));
+}
+
+/** Порожні прийоми їжі, які можна заповнити автоматично. */
+export function emptySlots(plan: Plan, p: Profile): { day: number; slot: string }[] {
+  const pool = RECIPES.filter((r) => allowedRecipe(r, p));
+  const res: { day: number; slot: string }[] = [];
+  plan.days.forEach((d, i) => {
+    const sched = daySchedule(p, d.weekday);
+    for (const s of sched.slots) {
+      if (d.entries.some((e) => e.slot === s.key)) continue;
+      if (canteenSlot(p, sched, s) || pool.some((r) => fitsSlot(r, p, sched, s))) res.push({ day: i, slot: s.key });
+    }
+  });
+  return res;
+}
+
+/** Заповнює порожні прийоми автоматично. Обране вами лишається (порції можуть підлаштуватися). */
+export function fillEmpty(plan: Plan, p: Profile, seed: number): Plan {
+  const next: Plan = structuredCloneSafe(plan);
+  const t = computeTargets(p);
+  const scheds = next.days.map((d) => daySchedule(p, d.weekday));
+  const st = newState();
+  next.days.forEach((d, i) =>
+    d.entries.forEach((e) => {
+      const r = RECIPE_BY_ID[e.recipe];
+      const s = scheds[i].slots.find((x) => x.key === e.slot);
+      if (r && s) remember(st, r, i, s);
+    }),
+  );
+  fillSlots(next.days, scheds, p, t, RECIPES.filter((r) => allowedRecipe(r, p)), mulberry32(seed), st);
+  finishDays(next.days, scheds, t);
   return next;
 }
 

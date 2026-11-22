@@ -41,6 +41,8 @@ export interface Profile {
   weekendSleep: string;
   meals: MealsPerDay;
   microwaveAtWork: boolean;
+  /** Обідаю в їдальні на роботі (у денну зміну обід не готуємо й не беремо з собою) */
+  canteen: boolean;
   equipment: Equipment[];
   maxLevel: Level;
   /** Скільки хвилин готові готувати в будні / вихідні */
@@ -75,6 +77,7 @@ export const DEFAULT_PROFILE: Profile = {
   weekendSleep: '00:00',
   meals: 4,
   microwaveAtWork: true,
+  canteen: false,
   equipment: ['microwave', 'airfryer', 'stove', 'oven', 'kettle'],
   maxLevel: 2,
   cookWeekday: 30,
@@ -83,72 +86,4 @@ export const DEFAULT_PROFILE: Profile = {
   people: 1,
   exclude: [],
   dislikes: [],
-};
-
-export const EQUIPMENT_LABEL: Record<Equipment, string> = {
-  microwave: 'Мікрохвильовка',
-  airfryer: 'Аерогриль',
-  stove: 'Плита (сковорода, каструля)',
-  oven: 'Духовка',
-  blender: 'Блендер',
-  kettle: 'Чайник',
-};
-
-export const EQUIPMENT_SHORT: Record<Equipment, string> = {
-  microwave: 'Мікрохвильовка',
-  airfryer: 'Аерогриль',
-  stove: 'Плита',
-  oven: 'Духовка',
-  blender: 'Блендер',
-  kettle: 'Чайник',
-};
-
-export const GOAL_LABEL: Record<Goal, { title: string; text: string }> = {
-  lose: { title: 'Схуднути м’яко', text: 'Напівдієта: −15 % від норми, ≈0,3–0,5 кг на тиждень без голоду' },
-  'lose-more': { title: 'Схуднути активніше', text: '−20 % від норми. Не нижче базового обміну' },
-  maintain: { title: 'Тримати вагу', text: 'Здорове харчування без дефіциту калорій' },
-  gain: { title: 'Набрати м’язи', text: '+10 % до норми і більше білка. Потрібні силові тренування' },
-};
-
-export const WORK_LABEL: Record<WorkType, { title: string; text: string }> = {
-  desk: { title: 'Сидяча', text: 'Офіс, комп’ютер, водій, диспетчер' },
-  standing: { title: 'На ногах', text: 'Продавець, вчитель, кухар, перукар, лікар' },
-  physical: { title: 'Фізична', text: 'Склад, кур’єр пішки, монтажник, офіціант' },
-  heavy: { title: 'Важка фізична', text: 'Вантажник, будівельник, різноробочий, аграрій' },
-};
-
-export const TRAINING_LABEL: Record<Training, string> = {
-  0: 'Не тренуюсь',
-  1: '1–2 рази на тиждень',
-  2: '3–4 рази на тиждень',
-  3: '5+ разів на тиждень',
-};
-
-export const EXCLUSION_LABEL: Record<Exclusion, string> = {
-  vegetarian: 'Без м’яса і риби',
-  'no-fish': 'Без риби',
-  'no-pork': 'Без свинини',
-  'no-beef': 'Без яловичини',
-  'no-dairy': 'Без молочного',
-  'no-egg': 'Без яєць',
-  'no-gluten': 'Без глютену',
-  'no-nuts': 'Без горіхів',
-};
-
-export const LEVEL_INFO: Record<Level, { title: string; short: string; text: string }> = {
-  1: {
-    title: 'Просто',
-    short: 'Рівень 1',
-    text: 'Мікрохвильовка, аерогриль, просто посмажити як яєчню або зварити гречку. До 45 хв.',
-  },
-  2: {
-    title: 'Середньо',
-    short: 'Рівень 2',
-    text: 'Сковорода і каструля, 2–3 складники, тушкування, котлети. 20–60 хв.',
-  },
-  3: {
-    title: 'Складно',
-    short: 'Рівень 3',
-    text: 'Духовка й плита разом, кілька етапів, фарширування. На вихідні, щоб навчитися.',
-  },
 };

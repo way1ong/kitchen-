@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { clock, timerLabel } from '../logic/format';
+import { T } from '../i18n/strings';
 import { Icon } from './icons';
 
 /**
@@ -85,6 +86,11 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const active = timers.some((t) => !t.done);
   const anyDone = timers.some((t) => t.done);
 
+  // Поки є таймери, панель займає низ екрана — даємо сторінці більше місця знизу
+  useEffect(() => {
+    document.body.classList.toggle('has-timers', timers.length > 0);
+  }, [timers.length]);
+
   useEffect(() => {
     if (!active && !anyDone) return;
     const id = window.setInterval(() => setNow(Date.now()), 250);
@@ -164,64 +170,119 @@ export function useTimers(): TimerApi {
   return c;
 }
 
-/** Кнопка «Запустити таймер» у кроці рецепта. */
+/**
+ * Кнопка таймера в кроці рецепта. Один таймер на крок: якщо він уже йде,
+ * кнопка показує відлік і ставить на паузу, а не запускає ще один.
+ */
 export function TimerButton({ seconds, label, big = false }: { seconds: number; label: string; big?: boolean }) {
-  const { start, timers } = useTimers();
-  const running = timers.find((t) => t.label === label && !t.done);
+  const { start, timers, now, toggle, remove } = useTimers();
+  const t = timers.find((x) => x.label === label);
+  const size = big ? 'btn-lg' : '';
+  if (!t) {
+    return (
+      <button
+        type="button"
+        className={`btn btn-timer ${size}`}
+        onClick={() => start(label, seconds)}
+        aria-label={T().timers.start(timerLabel(seconds), label)}
+      >
+        <Icon name="timer" />
+        {T().timers.one(timerLabel(seconds))}
+      </button>
+    );
+  }
+  if (t.done) {
+    return (
+      <button type="button" className={`btn btn-timer is-done ${size}`} onClick={() => remove(t.id)}>
+        <Icon name="bell" />
+        {T().timers.doneOff}
+      </button>
+    );
+  }
+  const paused = t.endAt === null;
   return (
     <button
       type="button"
-      className={`btn btn-timer ${big ? 'btn-lg' : ''}`}
-      onClick={() => start(label, seconds)}
-      aria-label={`Запустити таймер на ${timerLabel(seconds)}: ${label}`}
+      className={`btn btn-timer is-running ${size}`}
+      onClick={() => toggle(t.id)}
+      aria-label={paused ? T().timers.resumeAria : T().timers.pauseAria}
     >
-      <Icon name="timer" />
-      {running ? `Ще один таймер · ${timerLabel(seconds)}` : `Таймер · ${timerLabel(seconds)}`}
+      <Icon name={paused ? 'play' : 'pause'} />
+      {paused ? T().timers.pause : T().timers.running} · <span className="num">{clock(remaining(t, now))}</span>
     </button>
   );
 }
 
-/** Панель активних таймерів над нижнім меню. */
-export function TimerDock() {
-  const { timers, now, toggle, addMinute, remove } = useTimers();
-  if (!timers.length) return null;
+function TimerChip({ t, now }: { t: KitchenTimer; now: number }) {
+  const { toggle, addMinute, remove } = useTimers();
+  const left = remaining(t, now);
+  const paused = t.endAt === null && !t.done;
   return (
-    <section className="timer-dock" aria-label="Таймери">
-      {timers.map((t) => {
-        const left = remaining(t, now);
-        const paused = t.endAt === null && !t.done;
-        return (
-          <div className={`timer-chip ${t.done ? 'is-done' : ''}`} key={t.id} role={t.done ? 'alert' : undefined}>
-            <span className="timer-icon">
-              <Icon name={t.done ? 'bell' : 'timer'} />
-            </span>
-            <span className="timer-text">
-              <span className="timer-label">{t.label}</span>
-              <span className="timer-time num">
-                {t.done ? 'Готово! Перевірте страву' : paused ? `Пауза · ${clock(left)}` : clock(left)}
-              </span>
-            </span>
-            <span className="timer-actions">
-              {!t.done ? (
-                <button type="button" className="icon-btn" onClick={() => toggle(t.id)} aria-label={paused ? 'Продовжити' : 'Пауза'}>
-                  <Icon name={paused ? 'play' : 'pause'} />
-                </button>
-              ) : null}
-              <button type="button" className="chip-btn" onClick={() => addMinute(t.id)} aria-label="Додати хвилину">
-                +1 хв
-              </button>
-              <button
-                type="button"
-                className={t.done ? 'btn btn-primary btn-sm' : 'icon-btn'}
-                onClick={() => remove(t.id)}
-                aria-label={t.done ? 'Вимкнути сигнал' : 'Скасувати таймер'}
-              >
-                {t.done ? 'Вимкнути' : <Icon name="close" />}
-              </button>
-            </span>
-          </div>
-        );
-      })}
+    <div className={`timer-chip ${t.done ? 'is-done' : ''}`} role={t.done ? 'alert' : undefined}>
+      <span className="timer-icon">
+        <Icon name={t.done ? 'bell' : 'timer'} />
+      </span>
+      <span className="timer-text">
+        <span className="timer-label">{t.label}</span>
+        <span className="timer-time num">
+          {t.done ? T().timers.done : paused ? T().timers.paused(clock(left)) : clock(left)}
+        </span>
+      </span>
+      <span className="timer-actions">
+        {!t.done ? (
+          <button type="button" className="icon-btn" onClick={() => toggle(t.id)} aria-label={paused ? T().timers.resume : T().timers.pause}>
+            <Icon name={paused ? 'play' : 'pause'} />
+          </button>
+        ) : null}
+        <button type="button" className="chip-btn" onClick={() => addMinute(t.id)} aria-label={T().timers.addMinute}>
+          {T().timers.plusMinute}
+        </button>
+        <button
+          type="button"
+          className={t.done ? 'btn btn-primary btn-sm' : 'icon-btn'}
+          onClick={() => remove(t.id)}
+          aria-label={t.done ? T().timers.stopAlarm : T().timers.cancel}
+        >
+          {t.done ? T().timers.off : <Icon name="close" />}
+        </button>
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Панель таймерів над нижнім меню. Показує найтерміновіший таймер
+ * (той, що задзвонив, — завжди першим), решта — під кнопкою «Ще N».
+ */
+export function TimerDock() {
+  const { timers, now, remove } = useTimers();
+  const [open, setOpen] = useState(false);
+  if (!timers.length) return null;
+  const sorted = [...timers].sort((a, b) =>
+    a.done !== b.done ? (a.done ? -1 : 1) : remaining(a, now) - remaining(b, now),
+  );
+  const rest = sorted.length - 1;
+  const shown = open ? sorted : sorted.slice(0, 1);
+  return (
+    <section className="timer-dock" aria-label={T().timers.dock}>
+      <div className={`timer-list ${open ? 'is-open' : ''}`}>
+        {shown.map((t) => (
+          <TimerChip key={t.id} t={t} now={now} />
+        ))}
+      </div>
+      {rest > 0 ? (
+        <div className="timer-more">
+          {open ? (
+            <button type="button" className="chip-btn" onClick={() => sorted.forEach((t) => remove(t.id))}>
+              {T().timers.cancelAll}
+            </button>
+          ) : null}
+          <button type="button" className="chip-btn" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+            <Icon name={open ? 'chevronDown' : 'chevronUp'} size={18} />
+            {open ? T().timers.collapse : T().timers.more(rest)}
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }

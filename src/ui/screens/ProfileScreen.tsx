@@ -1,24 +1,21 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { PRODUCTS } from '../../data/products';
 import type { Equipment, Level } from '../../data/types';
-import { DAY_SHORT } from '../../logic/dates';
+import { dayShort } from '../../logic/dates';
 import { hhmm } from '../../logic/format';
-import {
-  EQUIPMENT_LABEL,
-  EXCLUSION_LABEL,
-  GOAL_LABEL,
-  LEVEL_INFO,
-  TRAINING_LABEL,
-  WORK_LABEL,
-  type Exclusion,
-  type Goal,
-  type MealsPerDay,
-  type Profile,
-  type Training,
-  type WorkType,
+import type {
+  Exclusion,
+  Goal,
+  MealsPerDay,
+  Profile,
+  Training,
+  WorkType,
 } from '../../logic/profile';
+import { trProduct } from '../../i18n/data';
+import { locale, type Lang } from '../../i18n';
+import { HU, T, UK } from '../../i18n/strings';
 import { daySchedule } from '../../logic/schedule';
-import { BMI_LABEL, computeTargets } from '../../logic/targets';
+import { computeTargets } from '../../logic/targets';
 import { useStore, type Settings } from '../../state/store';
 import { ConfirmButton, EQUIP_ICON, LevelBars } from '../components';
 import { Icon } from '../icons';
@@ -48,135 +45,147 @@ export function ProfileScreen() {
   };
 
   const workSched = daySchedule(draft, draft.workDays[0] ?? 1);
+  const L = T().profile;
+  const u = T().units;
+  const loc = locale();
 
   return (
     <div className="screen profile-screen">
       <header className="screen-head">
-        <p className="eyebrow">Дані лишаються лише на цьому пристрої</p>
-        <h1>Профіль</h1>
-        <p className="sub">Від цих даних залежать калорії, порції, час прийомів їжі і які страви потраплять у меню.</p>
+        <p className="eyebrow">{L.eyebrow}</p>
+        <h1>{L.title}</h1>
+        <p className="sub">{L.sub}</p>
       </header>
 
-      <section className="card result" aria-label="Ваша норма">
+      <section className="card result" aria-label={L.resultAria}>
         <p className="result-kcal">
-          <span className="num">{t.kcal.toLocaleString('uk-UA')}</span> ккал на день
+          <span className="num">{t.kcal.toLocaleString(loc)}</span> {L.perDay}
+        </p>
+        <p className="small muted result-basis">
+          {L.basis(
+            (draft.sex === 'm' ? L.male : L.female).toLowerCase(),
+            draft.age,
+            draft.height,
+            draft.weight.toLocaleString(loc, { maximumFractionDigits: 1, useGrouping: false }),
+            T().work[draft.work].title.toLowerCase(),
+            T().training[draft.training].toLowerCase(),
+          )}
         </p>
         <dl className="nutr-grid num">
           <div>
-            <dt>Білки</dt>
+            <dt>{T().recipe.nutr.protein}</dt>
             <dd>
-              {t.protein} <small>г</small>
+              {t.protein} <small>{u.g}</small>
             </dd>
           </div>
           <div>
-            <dt>Жири</dt>
+            <dt>{T().recipe.nutr.fat}</dt>
             <dd>
-              {t.fat} <small>г</small>
+              {t.fat} <small>{u.g}</small>
             </dd>
           </div>
           <div>
-            <dt>Вуглеводи</dt>
+            <dt>{T().recipe.nutr.carbs}</dt>
             <dd>
-              {t.carbs} <small>г</small>
+              {t.carbs} <small>{u.g}</small>
             </dd>
           </div>
           <div>
-            <dt>Клітковина</dt>
+            <dt>{T().recipe.nutr.fiber}</dt>
             <dd>
-              ≥{t.fiber} <small>г</small>
+              ≥{t.fiber} <small>{u.g}</small>
             </dd>
           </div>
           <div>
-            <dt>Вода</dt>
+            <dt>{T().recipe.nutr.water}</dt>
             <dd>
-              ≈{(t.water / 1000).toLocaleString('uk-UA')} <small>л</small>
+              ≈{(t.water / 1000).toLocaleString(loc)} <small>{u.l}</small>
             </dd>
           </div>
           <div>
-            <dt>Овочі й фрукти</dt>
+            <dt>{T().recipe.nutr.fv}</dt>
             <dd>
-              ≥{t.fv} <small>г</small>
+              ≥{t.fv} <small>{u.g}</small>
             </dd>
           </div>
         </dl>
         <ul className="bullets small">
           <li>
-            Базовий обмін {t.bmr} ккал × активність {t.pal.toLocaleString('uk-UA')} = витрати ≈{t.tdee.toLocaleString('uk-UA')} ккал.
-            {draft.goal !== 'maintain' ? ` Ціль: ${GOAL_LABEL[draft.goal].title.toLowerCase()}.` : ''}
+            {L.bmrLine(t.bmr, t.pal.toLocaleString(loc), t.tdee.toLocaleString(loc))}
+            {draft.goal !== 'maintain' ? L.goalLine(T().goals[draft.goal].title) : ''}
           </li>
           {t.weeklyChange !== 0 ? (
             <li>
-              Очікувано: {t.weeklyChange < 0 ? '−' : '+'}
-              {Math.abs(t.weeklyChange).toLocaleString('uk-UA')} кг на тиждень.
+              {L.expected(t.weeklyChange < 0 ? '−' : '+', Math.abs(t.weeklyChange).toLocaleString(loc))}
             </li>
           ) : null}
-          {t.floorApplied ? <li>Калорії не опускаємо нижче базового обміну — так безпечніше.</li> : null}
+          {t.floorApplied ? <li>{L.floor}</li> : null}
           <li>
-            Індекс маси тіла {t.bmi.toLocaleString('uk-UA')} — {BMI_LABEL[t.bmiCategory]} (здоровий діапазон для вашого зросту:{' '}
-            {t.healthyWeight[0]}–{t.healthyWeight[1]} кг). ІМТ не враховує м’язи.
+            {L.bmiLine(t.bmi.toLocaleString(loc), T().bmi[t.bmiCategory], t.healthyWeight[0], t.healthyWeight[1])}
           </li>
-          <li>Сіль — до 5 г на день (1 ч. л. з усім, що в їжі). Риба — 2 рази на тиждень.</li>
+          <li>{L.saltFish}</li>
         </ul>
         <p className="small muted">
-          Це оцінка з похибкою ±10 %. Зважуйтесь 2–3 рази на тиждень зранку і дивіться на тренд за 2–3 тижні: якщо вага не
-          змінюється — зменшіть ціль на 100–150 ккал. За хронічних хвороб (діабет, нирки, серце) узгодьте харчування з лікарем.
+          {L.estimate}
         </p>
+        <p className="small muted">{L.basisNote}</p>
       </section>
 
-      <Fieldset title="Про вас" icon="user">
-        <div className="seg" role="radiogroup" aria-label="Стать">
+      <Fieldset title={L.about} icon="user">
+        <div className="seg" role="radiogroup" aria-label={L.sex}>
           {(['m', 'f'] as const).map((s) => (
             <Radio key={s} name="sex" checked={draft.sex === s} onChange={() => set('sex', s)}>
-              {s === 'm' ? 'Чоловік' : 'Жінка'}
+              {s === 'm' ? L.male : L.female}
             </Radio>
           ))}
         </div>
         <div className="field-grid">
-          <NumberField id="age" label="Вік" unit="років" value={draft.age} min={16} max={90} onChange={(v) => set('age', v)} />
-          <NumberField id="height" label="Зріст" unit="см" value={draft.height} min={130} max={220} onChange={(v) => set('height', v)} />
-          <NumberField id="weight" label="Вага" unit="кг" value={draft.weight} min={40} max={250} step={0.5} onChange={(v) => set('weight', v)} />
+          <NumberField id="age" label={L.age} unit={u.years} value={draft.age} min={16} max={90} onChange={(v) => set('age', v)} />
+          <NumberField id="height" label={L.height} unit={u.cm} value={draft.height} min={130} max={220} onChange={(v) => set('height', v)} />
+          <NumberField id="weight" label={L.weight} unit={u.kg} value={draft.weight} min={40} max={250} step={0.5} onChange={(v) => set('weight', v)} />
         </div>
       </Fieldset>
 
-      <Fieldset title="Мета" icon="leaf">
+      <Fieldset title={L.goal} icon="leaf">
         <div className="option-list">
-          {(Object.keys(GOAL_LABEL) as Goal[]).map((g) => (
+          {(Object.keys(T().goals) as Goal[]).map((g) => (
             <Radio key={g} name="goal" checked={draft.goal === g} onChange={() => set('goal', g)} card>
-              <b>{GOAL_LABEL[g].title}</b>
-              <small>{GOAL_LABEL[g].text}</small>
+              <b>{T().goals[g].title}</b>
+              <small>{T().goals[g].text}</small>
             </Radio>
           ))}
         </div>
       </Fieldset>
 
-      <Fieldset title="Робота і тренування" icon="briefcase">
-        <p className="field-label">Тип роботи</p>
+      <Fieldset title={L.workTraining} icon="briefcase">
+        <p className="field-label">{L.workType}</p>
         <div className="option-list two">
-          {(Object.keys(WORK_LABEL) as WorkType[]).map((w) => (
+          {(Object.keys(T().work) as WorkType[]).map((w) => (
             <Radio key={w} name="work" checked={draft.work === w} onChange={() => set('work', w)} card>
-              <b>{WORK_LABEL[w].title}</b>
-              <small>{WORK_LABEL[w].text}</small>
+              <b>{T().work[w].title}</b>
+              <small>{T().work[w].text}</small>
             </Radio>
           ))}
         </div>
-        <p className="field-label">Тренування (спорт, зал, біг)</p>
-        <div className="seg wrap" role="radiogroup" aria-label="Тренування">
+        <p className="field-label">{L.trainingLabel}</p>
+        <div className="seg wrap" role="radiogroup" aria-label={L.trainingAria}>
           {([0, 1, 2, 3] as Training[]).map((x) => (
             <Radio key={x} name="training" checked={draft.training === x} onChange={() => set('training', x)}>
-              {TRAINING_LABEL[x]}
+              {T().training[x]}
             </Radio>
           ))}
         </div>
       </Fieldset>
 
-      <Fieldset title="Графік" icon="clock">
-        <p className="field-label">Робочі дні (день, коли починається зміна)</p>
-        <div className="day-toggles" role="group" aria-label="Робочі дні">
-          {DAY_SHORT.map((d, i) => {
+      <Fieldset title={L.schedule} icon="clock">
+        <p className="field-label">{L.workDays}</p>
+        <div className="day-toggles" role="group" aria-label={L.workDaysAria}>
+          {[1, 2, 3, 4, 5, 6, 7].map((wd, i) => {
+            const d = dayShort(wd);
             const on = draft.workDays.includes(i + 1);
             return (
               <button
-                key={d}
+                key={wd}
                 type="button"
                 className={`day-toggle ${on ? 'is-on' : ''}`}
                 aria-pressed={on}
@@ -191,26 +200,31 @@ export function ProfileScreen() {
           })}
         </div>
         <div className="field-grid">
-          <TimeField id="work-start" label="Початок роботи" value={draft.workStart} onChange={(v) => set('workStart', v)} />
-          <TimeField id="work-end" label="Кінець роботи" value={draft.workEnd} onChange={(v) => set('workEnd', v)} />
-          <NumberField id="commute" label="Дорога в один бік" unit="хв" value={draft.commute} min={0} max={180} step={5} onChange={(v) => set('commute', v)} />
+          <TimeField id="work-start" label={L.workStart} value={draft.workStart} onChange={(v) => set('workStart', v)} />
+          <TimeField id="work-end" label={L.workEnd} value={draft.workEnd} onChange={(v) => set('workEnd', v)} />
+          <NumberField id="commute" label={L.commute} unit={u.min} value={draft.commute} min={0} max={180} step={5} onChange={(v) => set('commute', v)} />
         </div>
         <Toggle id="remote" checked={draft.remote} onChange={(v) => set('remote', v)}>
-          Працюю з дому
+          {L.remote}
         </Toggle>
         {!draft.remote ? (
-          <Toggle id="mw-work" checked={draft.microwaveAtWork} onChange={(v) => set('microwaveAtWork', v)}>
-            На роботі є мікрохвильовка (можна розігріти обід)
-          </Toggle>
+          <>
+            <Toggle id="mw-work" checked={draft.microwaveAtWork} onChange={(v) => set('microwaveAtWork', v)}>
+              {L.microwaveAtWork}
+            </Toggle>
+            <Toggle id="canteen" checked={draft.canteen} onChange={(v) => set('canteen', v)}>
+              {L.canteen}
+            </Toggle>
+          </>
         ) : null}
         <div className="field-grid">
-          <TimeField id="wake" label="Підйом у робочі дні" value={draft.wake} onChange={(v) => set('wake', v)} />
-          <TimeField id="sleep" label="Сон у робочі дні" value={draft.sleep} onChange={(v) => set('sleep', v)} />
-          <TimeField id="wwake" label="Підйом у вихідні" value={draft.weekendWake} onChange={(v) => set('weekendWake', v)} />
-          <TimeField id="wsleep" label="Сон у вихідні" value={draft.weekendSleep} onChange={(v) => set('weekendSleep', v)} />
+          <TimeField id="wake" label={L.wake} value={draft.wake} onChange={(v) => set('wake', v)} />
+          <TimeField id="sleep" label={L.sleep} value={draft.sleep} onChange={(v) => set('sleep', v)} />
+          <TimeField id="wwake" label={L.weekendWake} value={draft.weekendWake} onChange={(v) => set('weekendWake', v)} />
+          <TimeField id="wsleep" label={L.weekendSleep} value={draft.weekendSleep} onChange={(v) => set('weekendSleep', v)} />
         </div>
-        <p className="field-label">Прийомів їжі на день</p>
-        <div className="seg" role="radiogroup" aria-label="Прийомів їжі">
+        <p className="field-label">{L.meals}</p>
+        <div className="seg" role="radiogroup" aria-label={L.mealsAria}>
           {([3, 4, 5] as MealsPerDay[]).map((m) => (
             <Radio key={m} name="meals" checked={draft.meals === m} onChange={() => set('meals', m)}>
               {m}
@@ -220,16 +234,16 @@ export function ProfileScreen() {
         {draft.workDays.length ? (
           <div className="schedule-preview">
             <p className="small">
-              <b>Робочий день так:</b>{' '}
-              {workSched.kind === 'night' ? 'нічна зміна' : workSched.kind === 'evening' ? 'вечірня зміна' : 'денна зміна'}
+              <b>{L.workdayLike}</b>{' '}
+              {L.shiftKinds[workSched.kind === 'off' ? 'day' : workSched.kind]}
             </p>
             <ul className="mini-schedule num">
               {workSched.slots.map((s) => (
                 <li key={s.key}>
-                  <b>{hhmm(s.time)}</b> {s.label}
+                  <b>{hhmm(s.time)}</b> {T().slots[s.label]}
                   {s.atWork ? (
                     <span className="tag">
-                      <Icon name="lunchbox" size={14} /> з собою
+                      <Icon name="lunchbox" size={14} /> {T().common.takeAwayLower}
                     </span>
                   ) : null}
                 </li>
@@ -239,8 +253,8 @@ export function ProfileScreen() {
         ) : null}
       </Fieldset>
 
-      <Fieldset title="Кухня і вміння" icon="stove">
-        <p className="field-label">Що є на кухні</p>
+      <Fieldset title={L.kitchen} icon="stove">
+        <p className="field-label">{L.haveEquipment}</p>
         <div className="chip-row">
           {EQUIP_ORDER.map((e) => {
             const on = draft.equipment.includes(e);
@@ -253,58 +267,58 @@ export function ProfileScreen() {
                 onClick={() => set('equipment', toggleIn(draft.equipment, e))}
               >
                 <Icon name={EQUIP_ICON[e]} size={20} />
-                {EQUIPMENT_LABEL[e]}
+                {T().equipment[e].label}
                 {on ? <Icon name="check" size={16} /> : null}
               </button>
             );
           })}
         </div>
-        <p className="field-label">Найскладніший рівень у меню</p>
+        <p className="field-label">{L.maxLevel}</p>
         <div className="option-list">
           {([1, 2, 3] as Level[]).map((l) => (
             <Radio key={l} name="level" checked={draft.maxLevel === l} onChange={() => set('maxLevel', l)} card>
               <span className={`level-line lvl-${l}`}>
                 <LevelBars level={l} size={18} />
                 <b>
-                  {LEVEL_INFO[l].short} · {LEVEL_INFO[l].title}
+                  {T().levels[l].short} · {T().levels[l].title}
                 </b>
               </span>
-              <small>{LEVEL_INFO[l].text}</small>
+              <small>{T().levels[l].text}</small>
             </Radio>
           ))}
         </div>
-        <p className="small muted">У будні меню все одно віддає перевагу простішим стравам, складніші — на вихідні.</p>
-        <p className="field-label">Скільки часу готові готувати</p>
+        <p className="small muted">{L.levelNote}</p>
+        <p className="field-label">{L.cookTime}</p>
         <div className="field-grid">
           <SelectField
             id="cook-weekday"
-            label="У будні"
+            label={L.weekdays}
             value={draft.cookWeekday}
             options={[15, 20, 30, 45, 60]}
             onChange={(v) => set('cookWeekday', v)}
           />
           <SelectField
             id="cook-weekend"
-            label="У вихідні"
+            label={L.weekends}
             value={draft.cookWeekend}
             options={[30, 45, 60, 90, 120]}
             onChange={(v) => set('cookWeekend', v)}
           />
-          <NumberField id="people" label="Людей на вечерях" unit="вкл. вас" value={draft.people} min={1} max={8} onChange={(v) => set('people', v)} />
+          <NumberField id="people" label={L.people} unit={L.peopleUnit} value={draft.people} min={1} max={8} onChange={(v) => set('people', v)} />
         </div>
         <Toggle id="batch" checked={draft.batch} onChange={(v) => set('batch', v)}>
-          Готувати вечерю із запасом на обід наступного дня (менше часу біля плити)
+          {L.batch}
         </Toggle>
       </Fieldset>
 
-      <Fieldset title="Обмеження" icon="alert">
+      <Fieldset title={L.restrictions} icon="alert">
         <div className="chip-row">
-          {(Object.keys(EXCLUSION_LABEL) as Exclusion[]).map((x) => {
+          {(Object.keys(T().exclusions) as Exclusion[]).map((x) => {
             const on = draft.exclude.includes(x);
             return (
               <button key={x} type="button" className={`chip ${on ? 'is-on' : ''}`} aria-pressed={on} onClick={() => set('exclude', toggleIn(draft.exclude, x))}>
                 {on ? <Icon name="check" size={16} /> : null}
-                {EXCLUSION_LABEL[x]}
+                {T().exclusions[x]}
               </button>
             );
           })}
@@ -315,16 +329,16 @@ export function ProfileScreen() {
       <div className={`save-bar ${dirty ? 'is-visible' : ''}`}>
         {saved && !dirty ? (
           <span className="saved">
-            <Icon name="check" /> Збережено
+            <Icon name="check" /> {L.saved}
           </span>
         ) : (
           <>
             <button type="button" className="btn btn-primary" onClick={() => commit(true)}>
               <Icon name="refresh" />
-              Зберегти і оновити меню
+              {L.saveRegen}
             </button>
             <button type="button" className="btn" onClick={() => commit(false)}>
-              Лише зберегти
+              {L.saveOnly}
             </button>
           </>
         )}
@@ -390,36 +404,48 @@ function NumberField({
   step?: number;
   onChange: (v: number) => void;
 }) {
-  const [text, setText] = useState(String(value));
+  const show = (v: number) => v.toLocaleString(locale(), { maximumFractionDigits: 1, useGrouping: false });
+  const [text, setText] = useState(show(value));
   const focused = useRef(false);
   useEffect(() => {
-    if (!focused.current) setText(String(value));
-  }, [value]);
+    if (!focused.current) setText(show(value));
+  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Приймаємо і кому, і крапку: «78,5» = «78.5»
+  const parsed = parseFloat(text.replace(',', '.'));
+  const valid = !Number.isNaN(parsed) && parsed >= min && parsed <= max;
+  const decimals = step < 1;
   return (
     <label className="field" htmlFor={id}>
       <span className="field-name">{label}</span>
-      <span className="field-input">
+      <span className={`field-input ${valid ? '' : 'is-invalid'}`}>
         <input
           id={id}
-          type="number"
-          inputMode="decimal"
-          min={min}
-          max={max}
-          step={step}
+          type="text"
+          inputMode={decimals ? 'decimal' : 'numeric'}
+          autoComplete="off"
           value={text}
+          aria-invalid={!valid}
+          aria-describedby={valid ? undefined : `${id}-err`}
           onChange={(e) => {
-            setText(e.target.value);
-            const v = parseFloat(e.target.value.replace(',', '.'));
-            if (!Number.isNaN(v) && v >= min && v <= max) onChange(v);
+            const raw = e.target.value.replace(/[^0-9.,]/g, '');
+            setText(raw);
+            const v = parseFloat(raw.replace(',', '.'));
+            if (!Number.isNaN(v) && v >= min && v <= max) onChange(Math.round(v * 10) / 10);
           }}
           onFocus={() => (focused.current = true)}
           onBlur={() => {
             focused.current = false;
-            setText(String(value));
+            if (valid) setText(show(value));
           }}
         />
         <span className="unit">{unit}</span>
       </span>
+      {valid ? null : (
+        <span className="field-error" id={`${id}-err`}>
+          <Icon name="alert" size={16} />
+          {T().profile.range(min, max, show(value))}
+        </span>
+      )}
     </label>
   );
 }
@@ -455,7 +481,7 @@ function SelectField({
         <select id={id} value={value} onChange={(e) => onChange(Number(e.target.value))}>
           {options.map((o) => (
             <option key={o} value={o}>
-              до {o} хв
+              {T().profile.upTo(o)}
             </option>
           ))}
         </select>
@@ -474,18 +500,23 @@ function Toggle({ id, checked, onChange, children }: { id: string; checked: bool
   );
 }
 
+function nameOf(id: string): string {
+  const p = PRODUCTS.find((x) => x.id === id);
+  return p ? trProduct(p).name : id;
+}
+
 function Dislikes({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
   const [q, setQ] = useState('');
-  const options = PRODUCTS.filter((p) => !p.pantry);
+  const options = PRODUCTS.filter((p) => !p.pantry).map((p) => trProduct(p));
   const found = q.trim()
     ? options.filter((p) => p.name.toLowerCase().includes(q.trim().toLowerCase()) && !value.includes(p.id)).slice(0, 8)
     : [];
   return (
     <div className="dislikes">
       <label className="field" htmlFor="dislike-search">
-        <span className="field-name">Не їм або не люблю</span>
+        <span className="field-name">{T().profile.dislikes}</span>
         <span className="field-input">
-          <input id="dislike-search" type="search" placeholder="Почніть вводити: буряк, гриби…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input id="dislike-search" type="search" placeholder={T().profile.dislikesPlaceholder} value={q} onChange={(e) => setQ(e.target.value)} />
         </span>
       </label>
       {found.length ? (
@@ -509,8 +540,8 @@ function Dislikes({ value, onChange }: { value: string[]; onChange: (v: string[]
       {value.length ? (
         <div className="chip-row">
           {value.map((id) => (
-            <button key={id} type="button" className="chip is-on" onClick={() => onChange(value.filter((x) => x !== id))} aria-label={`Прибрати: ${PRODUCTS.find((p) => p.id === id)?.name}`}>
-              {PRODUCTS.find((p) => p.id === id)?.name}
+            <button key={id} type="button" className="chip is-on" onClick={() => onChange(value.filter((x) => x !== id))} aria-label={T().profile.remove(nameOf(id))}>
+              {nameOf(id)}
               <Icon name="close" size={16} />
             </button>
           ))}
@@ -530,23 +561,28 @@ function AppearanceAndData() {
     const json = JSON.stringify(data);
     try {
       await navigator.clipboard.writeText(json);
-      setMsg('Резервну копію скопійовано. Збережіть її в нотатки або надішліть собі в месенджер.');
+      setMsg(T().profile.backupCopied);
       setBackup(null);
     } catch {
       setBackup(json);
-      setMsg('Скопіюйте текст нижче вручну.');
+      setMsg(T().profile.copyManually);
     }
   };
 
+  const L = T().profile;
   const fonts: { v: Settings['font']; label: string }[] = [
-    { v: 0, label: 'Звичайний' },
-    { v: 1, label: 'Великий' },
-    { v: 2, label: 'Дуже великий' },
+    { v: 0, label: L.fonts[0] },
+    { v: 1, label: L.fonts[1] },
+    { v: 2, label: L.fonts[2] },
   ];
-  const themes: { v: Settings['theme']; label: string; icon: 'sun' | 'moon' | 'refresh' }[] = [
-    { v: 'auto', label: 'Як у системі', icon: 'refresh' },
-    { v: 'light', label: 'Світла', icon: 'sun' },
-    { v: 'dark', label: 'Темна', icon: 'moon' },
+  const themes: { v: Settings['theme']; label: string }[] = [
+    { v: 'auto', label: L.themes.auto },
+    { v: 'light', label: L.themes.light },
+    { v: 'dark', label: L.themes.dark },
+  ];
+  const langs: { v: Lang; label: string }[] = [
+    { v: 'uk', label: UK.langName },
+    { v: 'hu', label: HU.langName },
   ];
 
   return (
@@ -554,24 +590,32 @@ function AppearanceAndData() {
       <fieldset className="card fieldset">
         <legend>
           <Icon name="sun" size={20} />
-          Налаштування
+          {L.settings}
         </legend>
+        <p className="field-label">{L.language}</p>
+        <div className="seg wrap" role="radiogroup" aria-label={L.language}>
+          {langs.map((x) => (
+            <Radio key={x.v} name="lang" checked={data.settings.lang === x.v} onChange={() => setSettings({ lang: x.v })}>
+              {x.label}
+            </Radio>
+          ))}
+        </div>
         <Toggle id="has-thermometer" checked={data.settings.thermometer} onChange={(v) => setSettings({ thermometer: v })}>
-          У мене є кухонний термометр (щуп) — показувати його першим способом перевірки
+          {L.hasThermo}
         </Toggle>
         <Toggle id="color-hints" checked={data.settings.colorHints} onChange={(v) => setSettings({ colorHints: v })}>
-          Показувати підказки за кольором («На вигляд»)
+          {L.colorHints}
         </Toggle>
-        <p className="field-label">Розмір шрифту</p>
-        <div className="seg wrap" role="radiogroup" aria-label="Розмір шрифту">
+        <p className="field-label">{L.fontSize}</p>
+        <div className="seg wrap" role="radiogroup" aria-label={L.fontSize}>
           {fonts.map((f) => (
             <Radio key={f.v} name="font" checked={data.settings.font === f.v} onChange={() => setSettings({ font: f.v })}>
               {f.label}
             </Radio>
           ))}
         </div>
-        <p className="field-label">Тема</p>
-        <div className="seg wrap" role="radiogroup" aria-label="Тема">
+        <p className="field-label">{L.theme}</p>
+        <div className="seg wrap" role="radiogroup" aria-label={L.theme}>
           {themes.map((th) => (
             <Radio key={th.v} name="theme" checked={data.settings.theme === th.v} onChange={() => setSettings({ theme: th.v })}>
               {th.label}
@@ -583,23 +627,22 @@ function AppearanceAndData() {
       <fieldset className="card fieldset">
         <legend>
           <Icon name="copy" size={20} />
-          Резервна копія
+          {L.backup}
         </legend>
         <p className="small muted">
-          Профіль і меню зберігаються лише в цьому браузері. Якщо очистити дані браузера — вони зникнуть. Зробіть копію, щоб
-          перенести на інший телефон.
+          {L.backupNote}
         </p>
         <div className="actions-row">
           <button type="button" className="btn" onClick={exportData}>
             <Icon name="copy" />
-            Скопіювати копію
+            {L.copyBackup}
           </button>
         </div>
         {msg ? <p className="small" role="status">{msg}</p> : null}
         {backup ? <textarea id="backup-out" className="copy-area" readOnly value={backup} onFocus={(e) => e.currentTarget.select()} /> : null}
         <label className="field" htmlFor="backup-in">
-          <span className="field-name">Відновити з копії</span>
-          <textarea id="backup-in" className="copy-area" placeholder="Вставте сюди текст резервної копії" value={restore} onChange={(e) => setRestore(e.target.value)} />
+          <span className="field-name">{L.restore}</span>
+          <textarea id="backup-in" className="copy-area" placeholder={L.restorePlaceholder} value={restore} onChange={(e) => setRestore(e.target.value)} />
         </label>
         <div className="actions-row">
           <button
@@ -608,14 +651,14 @@ function AppearanceAndData() {
             disabled={!restore.trim()}
             onClick={() => {
               const ok = importData(restore);
-              setMsg(ok ? 'Дані відновлено.' : 'Не вдалося прочитати копію — перевірте, що вставили текст повністю.');
+              setMsg(ok ? L.restored : L.restoreFail);
               if (ok) setRestore('');
             }}
           >
-            Відновити
+            {L.restoreBtn}
           </button>
-          <ConfirmButton className="btn btn-ghost" confirmText="Стерти профіль, меню і позначки на цьому пристрої?" onConfirm={resetAll}>
-            Скинути все
+          <ConfirmButton className="btn btn-ghost" confirmText={L.resetConfirm} onConfirm={resetAll}>
+            {L.reset}
           </ConfirmButton>
         </div>
       </fieldset>

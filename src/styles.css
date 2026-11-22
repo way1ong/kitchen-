@@ -806,7 +806,76 @@ textarea {
   cursor: pointer;
 }
 .alt-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-weight: 700;
+}
+.alt.is-current {
+  border-width: 3px;
+  border-style: double;
+}
+.alt-out {
+  border-style: dashed;
+  background: var(--surface-2);
+}
+.alt-notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 0.88rem;
+  color: var(--ink-2);
+}
+.alt-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.pick-head {
+  font-size: 1.02rem;
+  font-weight: 700;
+  margin-top: 4px;
+}
+.pick-more,
+.pick-remove {
+  align-self: flex-start;
+}
+
+/* Порожній прийом і «поза домом» */
+.meal.is-empty {
+  border-style: dashed;
+  box-shadow: none;
+}
+.meal-empty-text {
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.meal-out {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border: 1.5px dashed var(--ink-2);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.meal-out h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 1.12rem;
+}
+.out-tips summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.out-tips .bullets {
+  margin-top: 4px;
 }
 
 /* ── Рецепти ────────────────────────────────────────────── */
@@ -1225,6 +1294,12 @@ textarea {
   bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 10px);
   z-index: 4;
 }
+body.has-timers .sticky-cta {
+  position: static;
+}
+body.has-timers .main {
+  padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 200px);
+}
 
 /* ── Режим готування ────────────────────────────────────── */
 .cook {
@@ -1313,6 +1388,31 @@ textarea {
   padding: 8px max(10px, env(safe-area-inset-right, 0px)) 8px max(10px, env(safe-area-inset-left, 0px));
   pointer-events: none;
 }
+.timer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.timer-list.is-open {
+  max-height: 45vh;
+  overflow-y: auto;
+  pointer-events: auto;
+}
+.timer-more {
+  pointer-events: auto;
+  width: min(740px, 100%);
+  margin: 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.timer-more .chip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 40px;
+  background: var(--amber-soft);
+}
 .timer-chip {
   pointer-events: auto;
   width: min(740px, 100%);
@@ -1320,8 +1420,8 @@ textarea {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
+  gap: 8px;
+  padding: 6px 8px;
   background: var(--amber-soft);
   border: 2px solid var(--rim);
   border-radius: 14px;
@@ -1340,8 +1440,22 @@ textarea {
 }
 .timer-time {
   font-family: var(--font-display);
-  font-size: 1.35rem;
+  font-size: 1.2rem;
   font-weight: 700;
+}
+.timer-actions .icon-btn {
+  width: 40px;
+  height: 40px;
+}
+.timer-actions .chip-btn {
+  min-height: 40px;
+}
+.btn-timer.is-running {
+  background: var(--amber-soft);
+  color: var(--ink);
+}
+.btn-timer.is-done {
+  border-width: 3px;
 }
 .timer-actions {
   display: inline-flex;
@@ -1584,6 +1698,21 @@ body.no-scroll .timer-dock {
   background: transparent;
   outline: none;
   font-weight: 600;
+}
+.field-input.is-invalid {
+  border-style: dashed;
+  border-color: var(--warn);
+}
+.field-error {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 4px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--warn);
+}
+.result-basis {
+  margin-top: -6px;
 }
 .unit {
   color: var(--ink-2);

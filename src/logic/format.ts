@@ -1,4 +1,7 @@
 import type { Product } from '../data/types';
+import { trProduct } from '../i18n/data';
+import { getLang, locale } from '../i18n';
+import { T } from '../i18n/strings';
 
 /**
  * Українські форми слова для числа.
@@ -15,7 +18,7 @@ export function plural(n: number, forms: readonly [string, string, string, strin
 
 /** Число з комою: 1.5 → «1,5». */
 export function num(n: number, maxFrac = 1): string {
-  return n.toLocaleString('uk-UA', { maximumFractionDigits: maxFrac, useGrouping: false });
+  return n.toLocaleString(locale(), { maximumFractionDigits: maxFrac, useGrouping: false });
 }
 
 /** 0.5 → «½», 1.5 → «1½», 2 → «2», 0.25 → «¼», 0.75 → «¾». */
@@ -39,11 +42,18 @@ export function ceilTo(n: number, step: number): number {
   return Math.ceil(n / step - 1e-9) * step;
 }
 
+/** Штуки: українською — з відмінком («2 яйця»), угорською — одиниця без зміни («2 db»). */
+function pieceWord(p: Product, count: number): string {
+  if (getLang() === 'hu') return trProduct(p).unit ?? 'db';
+  return p.piece ? plural(count, p.piece.forms) : '';
+}
+
 /** Грами для показу в рецепті. */
 export function gramsText(g: number, liquid = false): string {
-  const unit = liquid ? 'мл' : 'г';
+  const u = T().units;
+  const unit = liquid ? u.ml : u.g;
   if (g >= 1000) {
-    return `${num(roundTo(g, 50) / 1000, 2)} ${liquid ? 'л' : 'кг'}`;
+    return `${num(roundTo(g, 50) / 1000, 2)} ${liquid ? u.l : u.kg}`;
   }
   let r: number;
   if (g < 10) r = Math.max(1, Math.round(g));
@@ -54,22 +64,22 @@ export function gramsText(g: number, liquid = false): string {
 
 /**
  * Кількість інгредієнта для рецепта: «2 яйця», «½ цибулини (≈50 г)»,
- * «1 ст. л.», «150 г», «за смаком».
+ * «1 ст. л.», «150 г», «за смаком» (угорською: «2 db», «½ fej», «1 ek.»).
  */
 export function amountText(p: Product, g: number, opts: { withGrams?: boolean } = {}): string {
-  if (g <= 0) return 'за смаком';
+  const u = T().units;
+  if (g <= 0) return u.toTaste;
 
   if (p.piece && p.piece.g > 0) {
     const count = g / p.piece.g;
     if (p.whole) {
       const c = Math.max(1, Math.round(count));
-      return `${c} ${plural(c, p.piece.forms)}`;
+      return `${c} ${pieceWord(p, c)}`;
     }
     if (count >= 0.5 || p.piece.g < 10) {
       const c = Math.max(0.5, roundTo(count, 0.5));
-      const word = plural(c, p.piece.forms);
       const grams = opts.withGrams && p.piece.g >= 50 ? ` (≈${gramsText(g, p.liquid)})` : '';
-      return `${fraction(c)} ${word}${grams}`;
+      return `${fraction(c)} ${pieceWord(p, c)}${grams}`;
     }
   }
 
@@ -77,9 +87,9 @@ export function amountText(p: Product, g: number, opts: { withGrams?: boolean } 
     const tbsp = g / p.spoon;
     if (tbsp < 0.67) {
       const tsp = Math.max(0.5, roundTo(g / (p.spoon / 3), 0.5));
-      return `${fraction(tsp)} ч. л.`;
+      return `${fraction(tsp)} ${u.tsp}`;
     }
-    return `${fraction(Math.max(0.5, roundTo(tbsp, 0.5)))} ст. л.`;
+    return `${fraction(Math.max(0.5, roundTo(tbsp, 0.5)))} ${u.tbsp}`;
   }
 
   return gramsText(g, p.liquid);
@@ -87,9 +97,10 @@ export function amountText(p: Product, g: number, opts: { withGrams?: boolean } 
 
 /** Кількість для списку покупок (округлення вгору до зручної покупки). */
 export function shoppingText(p: Product, g: number): { main: string; extra?: string } {
+  const u = T().units;
   if (p.piece && p.piece.g >= 5 && (p.whole || p.piece.g >= 50)) {
     const c = Math.max(1, Math.ceil(g / p.piece.g - 0.15));
-    const main = `${c} ${plural(c, p.piece.forms)}`;
+    const main = `${c} ${pieceWord(p, c)}`;
     if (p.whole) return { main };
     return { main, extra: `≈${gramsText(c * p.piece.g)}` };
   }
@@ -97,22 +108,24 @@ export function shoppingText(p: Product, g: number): { main: string; extra?: str
     const cloves = Math.max(1, Math.ceil(g / p.piece.g));
     // голівка часнику ≈ 10 зубчиків
     const heads = Math.max(1, Math.ceil(cloves / 10));
-    return { main: `${heads} ${plural(heads, ['голівка', 'голівки', 'голівок', 'голівки'])}`, extra: `${cloves} ${plural(cloves, p.piece.forms)}` };
+    const head = getLang() === 'hu' ? u.garlicHead[0] : plural(heads, u.garlicHead);
+    return { main: `${heads} ${head}`, extra: `${cloves} ${pieceWord(p, cloves)}` };
   }
   if (p.liquid) {
     const ml = g < 1000 ? ceilTo(g, 50) : ceilTo(g, 100);
-    return { main: ml >= 1000 ? `${num(ml / 1000, 1)} л` : `${ml} мл` };
+    return { main: ml >= 1000 ? `${num(ml / 1000, 1)} ${u.l}` : `${ml} ${u.ml}` };
   }
   const grams = g < 100 ? ceilTo(g, 10) : g < 1000 ? ceilTo(g, 50) : ceilTo(g, 100);
-  return { main: grams >= 1000 ? `${num(grams / 1000, 1)} кг` : `${grams} г` };
+  return { main: grams >= 1000 ? `${num(grams / 1000, 1)} ${u.kg}` : `${grams} ${u.g}` };
 }
 
-/** Хвилини → «1 год 15 хв». */
+/** Хвилини → «1 год 15 хв» / «1 óra 15 perc». */
 export function minutesText(min: number): string {
-  if (min < 60) return `${min} хв`;
+  const u = T().units;
+  if (min < 60) return `${min} ${u.min}`;
   const h = Math.floor(min / 60);
   const m = min % 60;
-  return m ? `${h} год ${m} хв` : `${h} год`;
+  return m ? `${h} ${u.hour} ${m} ${u.min}` : `${h} ${u.hour}`;
 }
 
 /** Секунди → «04:30» (для таймера). */
@@ -127,9 +140,10 @@ export function clock(sec: number): string {
 
 /** Секунди таймера для кнопки: 90 → «1,5 хв», 45 → «45 с». */
 export function timerLabel(sec: number): string {
-  if (sec < 60) return `${sec} с`;
+  const u = T().units;
+  if (sec < 60) return `${sec} ${u.sec}`;
   const min = sec / 60;
-  return Number.isInteger(min) ? `${min} хв` : `${num(min, 1)} хв`;
+  return Number.isInteger(min) ? `${min} ${u.min}` : `${num(min, 1)} ${u.min}`;
 }
 
 /** Хвилини від півночі → «07:30» (з урахуванням переходу через північ). */

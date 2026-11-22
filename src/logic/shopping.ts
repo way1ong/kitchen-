@@ -5,21 +5,16 @@ import type { Plan } from './planner';
 import type { Profile } from './profile';
 import { daySchedule } from './schedule';
 import { shoppingText } from './format';
+import { trProduct } from '../i18n/data';
+import { locale } from '../i18n';
+import { T } from '../i18n/strings';
 
 export const CAT_ORDER: ShopCat[] = ['veg', 'fruit', 'meat', 'fish', 'dairy', 'grain', 'canned', 'frozen', 'nuts', 'pantry'];
 
-export const CAT_LABEL: Record<ShopCat, string> = {
-  veg: 'Овочі та зелень',
-  fruit: 'Фрукти',
-  meat: 'М’ясо і птиця',
-  fish: 'Риба',
-  dairy: 'Молочне, яйця, охолоджене',
-  grain: 'Крупи, макарони, хліб',
-  canned: 'Консерви, соління, соуси',
-  frozen: 'Заморожене',
-  nuts: 'Горіхи й насіння',
-  pantry: 'Базовий запас — перевірте вдома',
-};
+/** Назва відділу магазину поточною мовою. */
+export function catLabel(cat: ShopCat): string {
+  return T().shopCats[cat];
+}
 
 export interface ShopItem {
   id: string;
@@ -61,16 +56,17 @@ export function buildShoppingList(plan: Plan, p: Profile, dayIdx: number[]): Sho
       for (const ing of r.ingredients) {
         if (ing.opt) continue;
         const prod = getProduct(ing.p);
+        const lp = trProduct(prod);
         const item =
           map.get(prod.id) ??
           ({
             id: prod.id,
-            name: prod.name,
+            name: lp.name,
             cat: prod.cat,
             grams: 0,
             amount: '',
             pantry: !!prod.pantry,
-            hint: prod.buyHint,
+            hint: lp.buyHint,
             days: [],
           } as ShopItem);
         item.grams += ing.g * k;
@@ -83,7 +79,7 @@ export function buildShoppingList(plan: Plan, p: Profile, dayIdx: number[]): Sho
   const items = [...map.values()];
   for (const it of items) {
     if (it.pantry || it.grams <= 0) {
-      it.amount = it.pantry ? '' : 'трохи';
+      it.amount = it.pantry ? '' : T().units.little;
       continue;
     }
     const t = shoppingText(getProduct(it.id), it.grams);
@@ -91,7 +87,7 @@ export function buildShoppingList(plan: Plan, p: Profile, dayIdx: number[]): Sho
     it.extra = t.extra;
   }
   items.sort(
-    (a, b) => CAT_ORDER.indexOf(a.cat) - CAT_ORDER.indexOf(b.cat) || a.name.localeCompare(b.name, 'uk'),
+    (a, b) => CAT_ORDER.indexOf(a.cat) - CAT_ORDER.indexOf(b.cat) || a.name.localeCompare(b.name, locale()),
   );
   return items;
 }
@@ -102,7 +98,7 @@ export function shoppingAsText(items: ShopItem[], title: string, checked: Set<st
   for (const cat of CAT_ORDER) {
     const list = items.filter((i) => i.cat === cat && !checked.has(i.id));
     if (!list.length) continue;
-    lines.push(`${CAT_LABEL[cat]}:`);
+    lines.push(`${catLabel(cat)}:`);
     for (const i of list) {
       lines.push(`– ${i.name}${i.amount ? ` — ${i.amount}` : ''}${i.extra ? ` (${i.extra})` : ''}`);
     }

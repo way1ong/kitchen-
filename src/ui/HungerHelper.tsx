@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { fraction, hhmm, minutesText, roundTo } from '../logic/format';
-import { HUNGER_EVENING_TIP, HUNGER_FIRST_CHECK, hungerInfo, snackSuggestions, type HungerZone } from '../logic/hunger';
+import { hungerInfo, snackSuggestions, type HungerZone } from '../logic/hunger';
+import { trRecipe } from '../i18n/data';
+import { T } from '../i18n/strings';
 import { useStore } from '../state/store';
 import { Callout, LevelBadge } from './components';
 import { Icon, type IconName } from './icons';
@@ -27,8 +29,10 @@ function useNow(): Date {
 export function HungerHelper() {
   const { data, setRecipeCtx } = useStore();
   const now = useNow();
-  const info = useMemo(() => hungerInfo(data.profile, now), [data.profile, now]);
+  const info = useMemo(() => hungerInfo(data.profile, now), [data.profile, now, data.settings.lang]);
   const list = useMemo(() => snackSuggestions(data.profile, info), [data.profile, info]);
+  const h = T().hunger;
+  const u = T().units;
 
   return (
     <div className="hunger">
@@ -38,18 +42,18 @@ export function HungerHelper() {
           {info.title}
         </span>
         <span className="num">
-          Зараз {hhmm(info.now)} ·{' '}
-          {info.toSleep > 0 ? `до сну ≈${minutesText(Math.max(5, roundTo(info.toSleep, 5)))}` : `сон був запланований на ${hhmm(info.sleepAt)}`}
+          {h.now(hhmm(info.now))} ·{' '}
+          {info.toSleep > 0 ? h.toSleep(minutesText(Math.max(5, roundTo(info.toSleep, 5)))) : h.sleepWas(hhmm(info.sleepAt))}
         </span>
       </div>
 
-      <Callout kind="info" icon="drop" title="Спершу — вода">
-        {HUNGER_FIRST_CHECK}
+      <Callout kind="info" icon="drop" title={h.waterTitle}>
+        {h.firstCheck}
       </Callout>
 
       <p>{info.advice}</p>
 
-      <h3 className="h-small">Що можна зараз</h3>
+      <h3 className="h-small">{h.canNow}</h3>
       {list.length ? (
         <ul className="alt-list">
           {list.map((s) => (
@@ -58,14 +62,14 @@ export function HungerHelper() {
                 className="alt"
                 href={`#recipe-${s.recipe.id}`}
                 onClick={() =>
-                  setRecipeCtx({ id: s.recipe.id, servings: s.mult, mine: s.mult, note: `перекус — ${fraction(s.mult)} порції` })
+                  setRecipeCtx({ id: s.recipe.id, servings: s.mult, mine: s.mult, note: h.portionNote(fraction(s.mult)) })
                 }
               >
-                <span className="alt-name">{s.recipe.name}</span>
+                <span className="alt-name">{trRecipe(s.recipe).name}</span>
                 <span className="meal-meta">
                   <LevelBadge level={s.recipe.level} />
                   <span className="meta-item num">
-                    {fraction(s.mult)} порц. · {Math.round(s.kcal)} ккал · Б {Math.round(s.protein)} г
+                    {fraction(s.mult)} {u.portionShort} · {Math.round(s.kcal)} {u.kcal} · {u.proteinShort} {Math.round(s.protein)} {u.g}
                   </span>
                 </span>
               </a>
@@ -73,10 +77,10 @@ export function HungerHelper() {
           ))}
         </ul>
       ) : (
-        <p>Підійде склянка води чи трав’яного чаю без цукру, огірок, морква або інші свіжі овочі.</p>
+        <p>{h.fallback}</p>
       )}
 
-      <h3 className="h-small">Краще не зараз</h3>
+      <h3 className="h-small">{h.notNow}</h3>
       <ul className="avoid-list">
         {info.avoid.map((a) => (
           <li key={a}>
@@ -86,7 +90,7 @@ export function HungerHelper() {
         ))}
       </ul>
 
-      <p className="small muted">{HUNGER_EVENING_TIP}</p>
+      <p className="small muted">{h.eveningTip}</p>
     </div>
   );
 }

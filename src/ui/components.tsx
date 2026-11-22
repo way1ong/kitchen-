@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import type { Equipment, Level, Recipe } from '../data/types';
-import { EQUIPMENT_SHORT, LEVEL_INFO } from '../logic/profile';
+import { T } from '../i18n/strings';
 import { Icon, type IconName } from './icons';
 
 export const EQUIP_ICON: Record<Equipment, IconName> = {
@@ -38,7 +38,7 @@ export function LevelBars({ level, size = 16 }: { level: Level; size?: number })
 }
 
 export function LevelBadge({ level, long = false }: { level: Level; long?: boolean }) {
-  const info = LEVEL_INFO[level];
+  const info = T().levels[level];
   return (
     <span className={`level-badge lvl-${level}`}>
       <LevelBars level={level} />
@@ -54,16 +54,16 @@ export function EquipList({ recipe, labels = false }: { recipe: Recipe; labels?:
     return (
       <span className="equip">
         <Icon name="bowl" size={18} />
-        <span className={labels ? '' : 'sr-only'}>Без готування</span>
+        <span className={labels ? '' : 'sr-only'}>{T().common.noCook}</span>
       </span>
     );
   }
   return (
     <span className="equip-list">
       {recipe.equipment.map((e) => (
-        <span className="equip" key={e} title={EQUIPMENT_SHORT[e]}>
+        <span className="equip" key={e} title={T().equipment[e].short}>
           <Icon name={EQUIP_ICON[e]} size={18} />
-          <span className={labels ? '' : 'sr-only'}>{EQUIPMENT_SHORT[e]}</span>
+          <span className={labels ? '' : 'sr-only'}>{T().equipment[e].short}</span>
         </span>
       ))}
     </span>
@@ -100,9 +100,10 @@ export function Meter({
   const extra = ratio > 1 ? ((Math.min(ratio, scale) - 1) / scale) * 100 : 0;
   const diff = Math.round(value - target);
   let status: string;
-  if (within) status = minOnly && ratio >= 1 ? 'ціль досягнуто' : 'в межах норми';
-  else if (over) status = `▲ на ${Math.abs(diff)} ${unit} більше`;
-  else status = `▼ на ${Math.abs(diff)} ${unit} менше`;
+  const m = T().meter;
+  if (within) status = minOnly && ratio >= 1 ? m.reached : m.ok;
+  else if (over) status = m.over(Math.abs(diff), unit);
+  else status = m.under(Math.abs(diff), unit);
   return (
     <div className="meter">
       <div className="meter-head">
@@ -120,7 +121,7 @@ export function Meter({
         aria-valuemin={0}
         aria-valuemax={Math.round(target * scale)}
         aria-valuenow={Math.round(value)}
-        aria-label={`${label}: ${Math.round(value)} з ${Math.round(target)} ${unit}`}
+        aria-label={m.aria(label, Math.round(value), Math.round(target), unit)}
       >
         <span className="meter-fill" style={{ width: `${base}%` }} />
         {extra > 0 ? (
@@ -185,7 +186,7 @@ export function Stepper({
         className="icon-btn"
         onClick={() => onChange(Math.max(min, Math.round((value - step) * 100) / 100))}
         disabled={value <= min}
-        aria-label="Менше"
+        aria-label={T().common.less}
       >
         <Icon name="minus" />
       </button>
@@ -197,7 +198,7 @@ export function Stepper({
         className="icon-btn"
         onClick={() => onChange(Math.min(max, Math.round((value + step) * 100) / 100))}
         disabled={value >= max}
-        aria-label="Більше"
+        aria-label={T().common.more}
       >
         <Icon name="plus" />
       </button>
@@ -245,7 +246,7 @@ export function Sheet({
       >
         <div className="sheet-head">
           <h2>{title}</h2>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="Закрити">
+          <button type="button" className="icon-btn" onClick={onClose} aria-label={T().common.close}>
             <Icon name="close" />
           </button>
         </div>
@@ -292,10 +293,10 @@ export function ConfirmButton({
             onConfirm();
           }}
         >
-          Так
+          {T().common.yes}
         </button>
         <button type="button" className="btn" onClick={() => setAsk(false)}>
-          Скасувати
+          {T().common.cancel}
         </button>
       </div>
     </div>
