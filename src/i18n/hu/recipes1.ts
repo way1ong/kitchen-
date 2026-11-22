@@ -273,7 +273,7 @@ export const HU_RECIPES_1: Record<string, RecipeTr> = {
     notes: { 3: 'lecsepegtetve', 6: 'mellé tálalva' },
     steps: [
       {
-        text: 'Hajtsd össze a lavast 2–3 rétegben úgy, hogy az airfryer (forrólevegős sütő) kosarába illő kört vagy négyzetet kapj.',
+        text: 'Hajtsd össze a lavast két-három rétegben úgy, hogy az airfryer (forrólevegős sütő) kosarába illő kört vagy négyzetet kapj.',
       },
       { text: 'Keverd simára a sűrített paradicsomot 1 ek. vízzel, és kend meg vele a lavast. Szórd meg oregánóval.' },
       { text: 'Rakd rá a vékonyra szeletelt paradicsomot és gombát, a tonhalat, a tetejére pedig a reszelt mozzarellát.' },

@@ -202,8 +202,8 @@ export function GuideHu() {
           </li>
           <li>
             A késői evésnek viszont ára van. Ha a vacsora és a lefekvés között kevesebb mint 3 óra telik el, érezhetően
-            nagyobb a gyomorégés (reflux) kockázata. Egy harvardi vizsgálatban (2022) pedig a késői étkezések fokozták az
-            éhséget másnap.
+            nagyobb a gyomorégés (reflux) kockázata. Egy kisebb harvardi vizsgálatban (2022) pedig a késői étkezések fokozták
+            az éhséget, és megváltoztatták az étvágyat szabályozó hormonokat.
           </li>
           <li>
             Ezért az alkalmazás az időt a <b>te</b> lefekvésedhez viszonyítja, nem az órához: a főétkezés 3–4 órával
