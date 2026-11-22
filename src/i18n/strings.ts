@@ -349,6 +349,10 @@ export const UK = {
     sub: 'Від цих даних залежать калорії, порції, час прийомів їжі і які страви потраплять у меню.',
     resultAria: 'Ваша норма',
     perDay: 'ккал на день',
+    basis: (who: string, age: number, h: number, w: string, work: string, training: string) =>
+      `Розраховано для: ${who}, ${age} років, ${h} см, ${w} кг · робота: ${work} · тренування: ${training}`,
+    basisNote: 'Норму змінюють лише стать, вік, зріст, вага, мета, тип роботи і тренування. Графік, кухня й обмеження впливають на меню, але не на калорії.',
+    range: (min: number, max: number, used: string) => `Допустимо від ${min} до ${max} — враховано ${used}`,
     bmrLine: (bmr: number, pal: string, tdee: string) => `Базовий обмін ${bmr} ккал × активність ${pal} = витрати ≈${tdee} ккал.`,
     goalLine: (goal: string) => ` Ціль: ${goal.toLowerCase()}.`,
     expected: (sign: string, kg: string) => `Очікувано: ${sign}${kg} кг на тиждень.`,
@@ -737,6 +741,10 @@ export const HU: Dict = {
     sub: 'Ezektől függnek a kalóriák, az adagok, az étkezések időpontjai és az, hogy milyen ételek kerülnek a menübe.',
     resultAria: 'A napi szükségleted',
     perDay: 'kcal naponta',
+    basis: (who: string, age: number, h: number, w: string, work: string, training: string) =>
+      `Számítás alapja: ${who}, ${age} év, ${h} cm, ${w} kg · munka: ${work} · edzés: ${training}`,
+    basisNote: 'A szükségletet csak a nem, az életkor, a magasság, a testsúly, a cél, a munka típusa és az edzés változtatja meg. A napirend, a konyha és a korlátozások a menüt alakítják, a kalóriát nem.',
+    range: (min: number, max: number, used: string) => `Megengedett: ${min}–${max} — most ${used} számít`,
     bmrLine: (bmr: number, pal: string, tdee: string) => `Alapanyagcsere ${bmr} kcal × aktivitás ${pal} = felhasználás ≈${tdee} kcal.`,
     goalLine: (goal: string) => ` Cél: ${goal.toLowerCase()}.`,
     expected: (sign: string, kg: string) => `Várható változás: ${sign}${kg} kg hetente.`,

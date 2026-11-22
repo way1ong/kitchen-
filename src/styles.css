@@ -1630,6 +1630,21 @@ body.no-scroll .timer-dock {
   outline: none;
   font-weight: 600;
 }
+.field-input.is-invalid {
+  border-style: dashed;
+  border-color: var(--warn);
+}
+.field-error {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 4px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--warn);
+}
+.result-basis {
+  margin-top: -6px;
+}
 .unit {
   color: var(--ink-2);
   font-size: 0.85rem;

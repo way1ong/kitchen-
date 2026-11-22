@@ -61,6 +61,16 @@ export function ProfileScreen() {
         <p className="result-kcal">
           <span className="num">{t.kcal.toLocaleString(loc)}</span> {L.perDay}
         </p>
+        <p className="small muted result-basis">
+          {L.basis(
+            (draft.sex === 'm' ? L.male : L.female).toLowerCase(),
+            draft.age,
+            draft.height,
+            draft.weight.toLocaleString(loc, { maximumFractionDigits: 1, useGrouping: false }),
+            T().work[draft.work].title.toLowerCase(),
+            T().training[draft.training].toLowerCase(),
+          )}
+        </p>
         <dl className="nutr-grid num">
           <div>
             <dt>{T().recipe.nutr.protein}</dt>
@@ -118,6 +128,7 @@ export function ProfileScreen() {
         <p className="small muted">
           {L.estimate}
         </p>
+        <p className="small muted">{L.basisNote}</p>
       </section>
 
       <Fieldset title={L.about} icon="user">
@@ -388,36 +399,48 @@ function NumberField({
   step?: number;
   onChange: (v: number) => void;
 }) {
-  const [text, setText] = useState(String(value));
+  const show = (v: number) => v.toLocaleString(locale(), { maximumFractionDigits: 1, useGrouping: false });
+  const [text, setText] = useState(show(value));
   const focused = useRef(false);
   useEffect(() => {
-    if (!focused.current) setText(String(value));
-  }, [value]);
+    if (!focused.current) setText(show(value));
+  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Приймаємо і кому, і крапку: «78,5» = «78.5»
+  const parsed = parseFloat(text.replace(',', '.'));
+  const valid = !Number.isNaN(parsed) && parsed >= min && parsed <= max;
+  const decimals = step < 1;
   return (
     <label className="field" htmlFor={id}>
       <span className="field-name">{label}</span>
-      <span className="field-input">
+      <span className={`field-input ${valid ? '' : 'is-invalid'}`}>
         <input
           id={id}
-          type="number"
-          inputMode="decimal"
-          min={min}
-          max={max}
-          step={step}
+          type="text"
+          inputMode={decimals ? 'decimal' : 'numeric'}
+          autoComplete="off"
           value={text}
+          aria-invalid={!valid}
+          aria-describedby={valid ? undefined : `${id}-err`}
           onChange={(e) => {
-            setText(e.target.value);
-            const v = parseFloat(e.target.value.replace(',', '.'));
-            if (!Number.isNaN(v) && v >= min && v <= max) onChange(v);
+            const raw = e.target.value.replace(/[^0-9.,]/g, '');
+            setText(raw);
+            const v = parseFloat(raw.replace(',', '.'));
+            if (!Number.isNaN(v) && v >= min && v <= max) onChange(Math.round(v * 10) / 10);
           }}
           onFocus={() => (focused.current = true)}
           onBlur={() => {
             focused.current = false;
-            setText(String(value));
+            if (valid) setText(show(value));
           }}
         />
         <span className="unit">{unit}</span>
       </span>
+      {valid ? null : (
+        <span className="field-error" id={`${id}-err`}>
+          <Icon name="alert" size={16} />
+          {T().profile.range(min, max, show(value))}
+        </span>
+      )}
     </label>
   );
 }
