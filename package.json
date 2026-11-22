@@ -1,0 +1,27 @@
+{
+  "name": "kitchen-helper",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Помічник на кухні: здорове меню за рівнями складності, персональні калорії під графік роботи, тижневе меню і список покупок. Дружній до людей з порушенням кольоросприйняття.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "build:artifact": "vite build --mode artifact && node scripts/make-artifact.mjs",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.31",
+    "@types/react-dom": "18.3.7",
+    "@vitejs/plugin-react": "5.2.0",
+    "typescript": "5.9.3",
+    "vite": "7.3.7",
+    "vitest": "3.2.7"
+  }
+}
