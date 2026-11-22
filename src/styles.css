@@ -806,7 +806,76 @@ textarea {
   cursor: pointer;
 }
 .alt-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-weight: 700;
+}
+.alt.is-current {
+  border-width: 3px;
+  border-style: double;
+}
+.alt-out {
+  border-style: dashed;
+  background: var(--surface-2);
+}
+.alt-notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 0.88rem;
+  color: var(--ink-2);
+}
+.alt-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.pick-head {
+  font-size: 1.02rem;
+  font-weight: 700;
+  margin-top: 4px;
+}
+.pick-more,
+.pick-remove {
+  align-self: flex-start;
+}
+
+/* Порожній прийом і «поза домом» */
+.meal.is-empty {
+  border-style: dashed;
+  box-shadow: none;
+}
+.meal-empty-text {
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.meal-out {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border: 1.5px dashed var(--ink-2);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.meal-out h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 1.12rem;
+}
+.out-tips summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.out-tips .bullets {
+  margin-top: 4px;
 }
 
 /* ── Рецепти ────────────────────────────────────────────── */

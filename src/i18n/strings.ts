@@ -5,6 +5,15 @@ import type { SlotHintKey, SlotLabelKey } from '../logic/schedule';
 import type { BmiCategory } from '../logic/targets';
 import { getLang } from './index';
 
+/** Українська форма слова після числа: 1 прийом, 2 прийоми, 5 прийомів. */
+function ukPl(n: number, one: string, few: string, many: string): string {
+  const n10 = n % 10;
+  const n100 = n % 100;
+  if (n10 === 1 && n100 !== 11) return one;
+  if (n10 >= 2 && n10 <= 4 && (n100 < 12 || n100 > 14)) return few;
+  return many;
+}
+
 /**
  * Рядки інтерфейсу. UK — основна мова; HU має ту саму форму (тип Dict),
  * тож TypeScript не дасть пропустити жоден рядок.
@@ -247,6 +256,41 @@ export const UK = {
     swapNow: 'Зараз:',
     swapHint: (atWork: boolean) => `Варіанти підібрані під ваш рівень, обладнання і час${atWork ? ' та підходять, щоб узяти з собою' : ''}.`,
     swapNone: 'Інших варіантів немає. Розширте обладнання, рівень або час на готування в профілі.',
+    chooseTitle: (slot: string) => `Вибрати: ${slot.toLowerCase()}`,
+    choose: 'Вибрати страву',
+    change: 'Змінити',
+    notChosen: 'Ще не обрано',
+    pickHint: 'Спершу — страви, що найкраще підходять за калоріями, білком і вашим часом. Порцію додаток підбере сам.',
+    fitsTitle: (n: number) => `Підходять (${n})`,
+    otherTitle: (n: number) => `Інші страви (${n})`,
+    otherHint: 'Ці страви теж можна обрати, але вони не зовсім підходять під ваш профіль.',
+    noteLevel: 'складніше за ваш рівень',
+    noteTime: 'довше, ніж ваш час на готування',
+    notePortable: 'не взяти з собою',
+    currentTag: 'зараз у меню',
+    levelAll: 'Усі рівні',
+    repeat: (days: string) => `Те саме також: ${days}`,
+    outCanteen: 'Обідаю в їдальні',
+    outAway: 'Їм поза домом',
+    outPick: (kcal: number) => `Нічого не готувати й не купувати. На цей прийом залишимо ≈ ${kcal} ккал.`,
+    outTitleCanteen: 'У їдальні на роботі',
+    outTitleAway: 'Поза домом',
+    outKcal: (kcal: number) => `≈ ${kcal} ккал (орієнтовно)`,
+    outTipsCanteen: 'Як обрати в їдальні',
+    outTipsAway: 'Як обрати поза домом',
+    outTips: [
+      'Суп або салат зі свіжих овочів + м’ясо, риба чи яйця + гарнір (гречка, рис, картопля, макарони).',
+      'Тарілка: половина — овочі, чверть — білок, чверть — гарнір.',
+      'Варене, тушковане, запечене чи гриль — частіше; смажене в клярі чи панірці — рідко.',
+      'Майонезний салат, вершковий соус, булочка чи солодкий напій — кожне додає ще 100–400 ккал.',
+      'Гарнір — порція з кулак, хліб — 1 скибка.',
+    ],
+    remove: 'Прибрати з меню',
+    emptyCount: (n: number) => `Без страви: ${n} ${ukPl(n, 'прийом', 'прийоми', 'прийомів')} їжі цього тижня.`,
+    emptyText: 'Оберіть страви самі («Вибрати страву») або заповніть решту автоматично.',
+    fillRest: 'Заповнити решту',
+    manual: 'Скласти самому',
+    manualConfirm: 'Почати з порожнього меню й обрати страви самому? Поточне меню і позначки в списку покупок зникнуть.',
     shiftNight: 'Нічна зміна: як їсти',
     shiftEvening: 'Вечірня зміна: як їсти',
     shiftNightTips: [
@@ -382,6 +426,7 @@ export const UK = {
     commute: 'Дорога в один бік',
     remote: 'Працюю з дому',
     microwaveAtWork: 'На роботі є мікрохвильовка (можна розігріти обід)',
+    canteen: 'Обідаю в їдальні на роботі (обід із собою не потрібен)',
     wake: 'Підйом у робочі дні',
     sleep: 'Сон у робочі дні',
     weekendWake: 'Підйом у вихідні',
@@ -639,6 +684,41 @@ export const HU: Dict = {
     swapNow: 'Most:',
     swapHint: (atWork: boolean) => `A javaslatok a szintedhez, az eszközeidhez és az idődhöz igazodnak${atWork ? ', és elvihetők' : ''}.`,
     swapNone: 'Nincs más lehetőség. Bővítsd az eszközöket, a szintet vagy a főzési időt a profilban.',
+    chooseTitle: (slot: string) => `Választás: ${slot.toLowerCase()}`,
+    choose: 'Étel kiválasztása',
+    change: 'Módosítás',
+    notChosen: 'Még nincs kiválasztva',
+    pickHint: 'Elöl azok az ételek, amelyek kalóriában, fehérjében és időben a legjobban illenek hozzád. Az adagot az app számolja ki.',
+    fitsTitle: (n: number) => `Illenek hozzád (${n})`,
+    otherTitle: (n: number) => `További ételek (${n})`,
+    otherHint: 'Ezeket is választhatod, de nem teljesen illenek a profilodhoz.',
+    noteLevel: 'nehezebb a szintednél',
+    noteTime: 'tovább tart, mint amennyi időd van főzni',
+    notePortable: 'nem vihető el',
+    currentTag: 'most a menüben',
+    levelAll: 'Minden szint',
+    repeat: (days: string) => `Ugyanez ezeken a napokon is: ${days}`,
+    outCanteen: 'A menzán ebédelek',
+    outAway: 'Házon kívül eszem',
+    outPick: (kcal: number) => `Nem kell főzni és vásárolni. Erre az étkezésre ≈ ${kcal} kcal marad.`,
+    outTitleCanteen: 'Menzán, a munkahelyen',
+    outTitleAway: 'Házon kívül',
+    outKcal: (kcal: number) => `≈ ${kcal} kcal (becslés)`,
+    outTipsCanteen: 'Hogyan válassz a menzán',
+    outTipsAway: 'Hogyan válassz házon kívül',
+    outTips: [
+      'Leves vagy friss saláta + hús, hal vagy tojás + köret (hajdina, rizs, burgonya, tészta).',
+      'A tányér fele zöldség, negyede fehérje, negyede köret — mint az OKOSTÁNYÉR®-on.',
+      'Főtt, párolt, sütőben sült vagy grillezett étel — gyakrabban; panírozott, rántott — ritkán.',
+      'Majonézes saláta, tejszínes szósz, péksütemény vagy édes üdítő — mindegyik további 100–400 kcal.',
+      'Köretből egy ökölnyi adag, kenyérből 1 szelet.',
+    ],
+    remove: 'Törlés a menüből',
+    emptyCount: (n: number) => `Étel nélkül: ${n} étkezés ezen a héten.`,
+    emptyText: 'Válassz ételt magad („Étel kiválasztása”), vagy töltsd ki a többit automatikusan.',
+    fillRest: 'A többi kitöltése',
+    manual: 'Saját összeállítás',
+    manualConfirm: 'Üres menüvel kezdesz, és magad választod az ételeket? A mostani menü és a bevásárlólista pipái törlődnek.',
     shiftNight: 'Éjszakai műszak: hogyan egyél',
     shiftEvening: 'Délutáni műszak: hogyan egyél',
     shiftNightTips: [
@@ -774,6 +854,7 @@ export const HU: Dict = {
     commute: 'Út egy irányba',
     remote: 'Otthonról dolgozom',
     microwaveAtWork: 'A munkahelyen van mikró (meg lehet melegíteni az ebédet)',
+    canteen: 'A munkahelyi menzán ebédelek (nem kell ebédet vinni)',
     wake: 'Ébredés munkanapokon',
     sleep: 'Lefekvés munkanapokon',
     weekendWake: 'Ébredés szabadnapokon',

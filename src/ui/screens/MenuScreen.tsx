@@ -1,19 +1,31 @@
 import { useMemo, useState } from 'react';
 import { RECIPE_BY_ID } from '../../data/recipes';
-import type { Recipe } from '../../data/types';
+import type { Level } from '../../data/types';
 import { dayFull, dayMonth, dayShort } from '../../logic/dates';
 import { trRecipe } from '../../i18n/data';
 import { locale } from '../../i18n';
 import { T } from '../../i18n/strings';
 import { fraction, hhmm, minutesText } from '../../logic/format';
-import { alternatives, dayTotals, profileKey, todayIndex, type Plan, type PlanEntry } from '../../logic/planner';
+import {
+  dayTotals,
+  emptySlots,
+  matchingDays,
+  profileKey,
+  slotOptions,
+  todayIndex,
+  type MealChoice,
+  type OptionNote,
+  type Plan,
+  type PlanEntry,
+  type SlotOption,
+} from '../../logic/planner';
 import type { Profile } from '../../logic/profile';
 import { portion } from '../../logic/recipeNutrition';
 import { daySchedule, type DaySchedule, type Slot } from '../../logic/schedule';
 import { computeTargets } from '../../logic/targets';
 import { planDate, planIsCurrentWeek, useStore, type RecipeContext } from '../../state/store';
-import { Banner, ConfirmButton, EquipList, LevelBadge, Meter, Sheet } from '../components';
-import { Icon } from '../icons';
+import { Banner, Checkbox, ConfirmButton, EquipList, LevelBadge, LevelBars, Meter, Sheet } from '../components';
+import { Icon, type IconName } from '../icons';
 import { HungerHelper } from '../HungerHelper';
 import { go } from '../nav';
 
@@ -35,10 +47,11 @@ function entryContext(plan: Plan, dayIndex: number, entry: PlanEntry, slot: Slot
 }
 
 export function MenuScreen() {
-  const { data, newPlan } = useStore();
+  const { data, newPlan, fillEmpty } = useStore();
   const plan = data.plan;
   const p = data.profile;
   const t = useMemo(() => computeTargets(p), [p]);
+  const empties = useMemo(() => (plan ? emptySlots(plan, p) : []), [plan, p]);
   const ti = plan ? todayIndex(plan) : -1;
   const [sel, setSel] = useState(ti >= 0 ? ti : 0);
   const [hungry, setHungry] = useState(false);
@@ -48,7 +61,7 @@ export function MenuScreen() {
     return (
       <div className="screen">
         <h1>{L.title}</h1>
-        <button type="button" className="btn btn-primary" onClick={newPlan}>
+        <button type="button" className="btn btn-primary" onClick={() => newPlan()}>
           {L.create}
         </button>
       </div>
@@ -92,7 +105,7 @@ export function MenuScreen() {
         <Banner
           icon="calendar"
           action={
-            <button type="button" className="btn btn-primary" onClick={newPlan}>
+            <button type="button" className="btn btn-primary" onClick={() => newPlan()}>
               {L.thisWeek}
             </button>
           }
@@ -105,12 +118,26 @@ export function MenuScreen() {
         <Banner
           icon="refresh"
           action={
-            <button type="button" className="btn btn-primary" onClick={newPlan}>
+            <button type="button" className="btn btn-primary" onClick={() => newPlan()}>
               {L.update}
             </button>
           }
         >
           {L.outdated}
+        </Banner>
+      ) : null}
+
+      {empties.length ? (
+        <Banner
+          icon="list"
+          action={
+            <button type="button" className="btn btn-primary" onClick={() => fillEmpty()}>
+              <Icon name="refresh" />
+              {L.fillRest}
+            </button>
+          }
+        >
+          <b>{L.emptyCount(empties.length)}</b> {L.emptyText}
         </Banner>
       ) : null}
 
@@ -156,12 +183,11 @@ export function MenuScreen() {
           <Icon name="basket" />
           {L.shoppingList}
         </button>
-        <ConfirmButton
-          icon="refresh"
-          confirmText={L.regenConfirm}
-          onConfirm={newPlan}
-        >
+        <ConfirmButton icon="refresh" confirmText={L.regenConfirm} onConfirm={() => newPlan('auto')}>
           {L.regen}
+        </ConfirmButton>
+        <ConfirmButton icon="list" confirmText={L.manualConfirm} onConfirm={() => newPlan('empty')}>
+          {L.manual}
         </ConfirmButton>
       </div>
     </div>
@@ -245,18 +271,25 @@ function NextMeal({ plan, sel, sched, profile }: { plan: Plan; sel: number; sche
   const slot = sched.slots.find((s) => s.time + 30 >= m);
   if (!slot) return null;
   const e = plan.days[sel].entries.find((x) => x.slot === slot.key);
-  const r = e && RECIPE_BY_ID[e.recipe];
-  if (!r) return null;
+  const r = e && !e.out ? RECIPE_BY_ID[e.recipe] : undefined;
+  if (!e || (!r && !e.out)) return null;
   const soon = slot.time <= m + 30;
   return (
     <section className="next-meal" aria-label={T().menu.next}>
       <span className="next-when">
         <Icon name="clock" size={18} /> {soon ? T().menu.nowAt : T().menu.nextAt} <b className="num">{hhmm(slot.time)}</b> · {T().slots[slot.label]}
       </span>
-      <a className="next-name" href={`#recipe-${r.id}`} onClick={() => e && setRecipeCtx(entryContext(plan, sel, e, slot, profile))}>
-        {trRecipe(r).name}
-        <Icon name="chevronRight" size={18} />
-      </a>
+      {r ? (
+        <a className="next-name" href={`#recipe-${r.id}`} onClick={() => setRecipeCtx(entryContext(plan, sel, e, slot, profile))}>
+          {trRecipe(r).name}
+          <Icon name="chevronRight" size={18} />
+        </a>
+      ) : (
+        <span className="next-name">
+          <Icon name="bowl" size={18} />
+          {slot.atWork ? T().menu.outTitleCanteen : T().menu.outTitleAway}
+        </span>
+      )}
     </section>
   );
 }
@@ -279,7 +312,7 @@ function PrepNotes({ plan, sel, profile }: { plan: Plan; sel: number; profile: P
   }
   const away = day.entries.filter((e) => {
     const s = sched.slots.find((x) => x.key === e.slot);
-    return s?.atWork && e.leftoverFrom === undefined;
+    return s?.atWork && e.leftoverFrom === undefined && !e.out && !!RECIPE_BY_ID[e.recipe];
   });
   if (away.length) {
     notes.push({
@@ -331,15 +364,56 @@ function MealCard({
   dayIndex: number;
   profile: Profile;
 }) {
-  const { setRecipeCtx, swap } = useStore();
+  const { setRecipeCtx } = useStore();
   const [open, setOpen] = useState(false);
-  const r = entry ? RECIPE_BY_ID[entry.recipe] : undefined;
+  const L = T().menu;
+  const r = entry && !entry.out ? RECIPE_BY_ID[entry.recipe] : undefined;
+  const picker = open ? (
+    <PickSheet onClose={() => setOpen(false)} plan={plan} dayIndex={dayIndex} slot={slot} profile={profile} entry={entry} />
+  ) : null;
+
+  if (entry?.out) {
+    return (
+      <article className="meal is-out">
+        <MealTime slot={slot} out />
+        <div className="meal-out">
+          <h3>
+            <Icon name="bowl" size={22} />
+            {slot.atWork ? L.outTitleCanteen : L.outTitleAway}
+          </h3>
+          <p className="num">{L.outKcal(entry.out.kcal)}</p>
+          <details className="out-tips">
+            <summary>
+              <Icon name="bulb" size={18} />
+              {slot.atWork ? L.outTipsCanteen : L.outTipsAway}
+            </summary>
+            <ul className="bullets">
+              {L.outTips.map((tip) => (
+                <li key={tip}>{tip}</li>
+              ))}
+            </ul>
+          </details>
+        </div>
+        <div className="meal-actions">
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpen(true)}>
+            <Icon name="swap" size={18} /> {L.change}
+          </button>
+        </div>
+        {picker}
+      </article>
+    );
+  }
 
   if (!entry || !r) {
     return (
-      <article className="meal">
+      <article className="meal is-empty">
         <MealTime slot={slot} />
-        <p className="muted">{T().menu.noRecipe}</p>
+        <p className="meal-empty-text">{L.notChosen}</p>
+        <button type="button" className="btn btn-primary btn-block" onClick={() => setOpen(true)}>
+          <Icon name="plus" />
+          {L.choose}
+        </button>
+        {picker}
       </article>
     );
   }
@@ -366,7 +440,7 @@ function MealCard({
           <LevelBadge level={r.level} />
           <span className="meta-item">
             <Icon name="clock" size={16} />
-            {entry.leftoverFrom !== undefined ? T().menu.reheat : minutesText(r.totalMin)}
+            {entry.leftoverFrom !== undefined ? L.reheat : minutesText(r.totalMin)}
           </span>
           <EquipList recipe={r} />
         </span>
@@ -383,17 +457,17 @@ function MealCard({
         </span>
         {entry.leftoverFrom !== undefined ? (
           <span className="tag">
-            <Icon name="repeat" size={16} /> {T().menu.leftoverTag}
+            <Icon name="repeat" size={16} /> {L.leftoverTag}
           </span>
         ) : null}
         {lunchExtra ? (
           <span className="tag">
-            <Icon name="repeat" size={16} /> {T().menu.extraTag(fraction(lunchExtra))}
+            <Icon name="repeat" size={16} /> {L.extraTag(fraction(lunchExtra))}
           </span>
         ) : null}
         {familyHere ? (
           <span className="tag">
-            <Icon name="user" size={16} /> {T().menu.familyTag(family)}
+            <Icon name="user" size={16} /> {L.familyTag(family)}
           </span>
         ) : null}
         <span className="meal-open" aria-hidden="true">
@@ -405,29 +479,17 @@ function MealCard({
           <Icon name="swap" size={18} /> {T().common.replace}
         </button>
       </div>
-      <SwapSheet
-        open={open}
-        onClose={() => setOpen(false)}
-        plan={plan}
-        dayIndex={dayIndex}
-        slot={slot}
-        profile={profile}
-        current={r}
-        onPick={(id) => {
-          swap(dayIndex, slot.key, id);
-          setOpen(false);
-        }}
-      />
+      {picker}
     </article>
   );
 }
 
-function MealTime({ slot }: { slot: Slot }) {
+function MealTime({ slot, out = false }: { slot: Slot; out?: boolean }) {
   return (
     <div className="meal-time">
       <span className="time num">{hhmm(slot.time)}</span>
       <span className="slot-label">{T().slots[slot.label]}</span>
-      {slot.atWork ? (
+      {slot.atWork && !out ? (
         <span className="tag tag-strong">
           <Icon name="lunchbox" size={16} /> {T().common.takeAway}
         </span>
@@ -442,58 +504,188 @@ function MealTime({ slot }: { slot: Slot }) {
   );
 }
 
-function SwapSheet({
-  open,
+const NOTE_ICON: Record<OptionNote, IconName> = { level: 'info', time: 'clock', portable: 'lunchbox' };
+
+/**
+ * Вибір страви на прийом їжі: «поза домом / у їдальні», фільтр за рівнем,
+ * спершу страви, що підходять, далі — інші з поясненням чому.
+ */
+function PickSheet({
   onClose,
   plan,
   dayIndex,
   slot,
   profile,
-  current,
-  onPick,
+  entry,
 }: {
-  open: boolean;
   onClose: () => void;
   plan: Plan;
   dayIndex: number;
   slot: Slot;
   profile: Profile;
-  current: Recipe;
-  onPick: (id: string) => void;
+  entry?: PlanEntry;
 }) {
-  const alts = useMemo(
-    () => (open ? alternatives(plan, dayIndex, slot.key, profile, 10) : []),
-    [open, plan, dayIndex, slot.key, profile],
+  const { pick } = useStore();
+  const [level, setLevel] = useState<0 | Level>(0);
+  const [more, setMore] = useState(false);
+  const [repeat, setRepeat] = useState(false);
+  const options = useMemo(() => slotOptions(plan, dayIndex, slot.key, profile), [plan, dayIndex, slot.key, profile]);
+  const others = useMemo(
+    () => matchingDays(plan, dayIndex, slot.key, profile).filter((i) => i !== dayIndex),
+    [plan, dayIndex, slot.key, profile],
   );
+  const L = T().menu;
+  const shown = level ? options.filter((o) => o.recipe.level === level) : options;
+  const fits = shown.filter((o) => o.fits);
+  const rest = shown.filter((o) => !o.fits);
+  const showRest = more || !fits.length;
+  const current = entry && !entry.out ? RECIPE_BY_ID[entry.recipe] : undefined;
+  const outKcal = Math.round((computeTargets(profile).kcal * slot.share) / 10) * 10;
+  const outName = slot.atWork ? L.outTitleCanteen : L.outTitleAway;
+
+  const choose = (choice: MealChoice) => {
+    pick(dayIndex, slot.key, choice, repeat ? others : []);
+    onClose();
+  };
+
   return (
-    <Sheet open={open} onClose={onClose} title={T().menu.swapTitle(T().slots[slot.label])}>
-      <p className="muted">
-        {T().menu.swapNow} <b>{trRecipe(current).name}</b>. {T().menu.swapHint(slot.atWork)}
-      </p>
-      {alts.length ? (
-        <ul className="alt-list">
-          {alts.map((a) => (
-            <li key={a.recipe.id}>
-              <button type="button" className="alt" onClick={() => onPick(a.recipe.id)}>
-                <span className="alt-name">{trRecipe(a.recipe).name}</span>
-                <span className="meal-meta">
-                  <LevelBadge level={a.recipe.level} />
-                  <span className="meta-item">
-                    <Icon name="clock" size={16} />
-                    {minutesText(a.recipe.totalMin)}
-                  </span>
-                  <span className="meta-item num">
-                    {Math.round(a.kcal)} {T().units.kcal} · {T().units.proteinShort} {Math.round(a.protein)} {T().units.g}
-                  </span>
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p>{T().menu.swapNone}</p>
-      )}
+    <Sheet open onClose={onClose} title={(entry ? L.swapTitle : L.chooseTitle)(T().slots[slot.label])}>
+      {current || entry?.out ? (
+        <p className="muted">
+          {L.swapNow} <b>{current ? trRecipe(current).name : outName}</b>.
+        </p>
+      ) : null}
+      <p className="small muted">{L.pickHint}</p>
+
+      {others.length ? (
+        <Checkbox checked={repeat} onChange={setRepeat}>
+          {L.repeat(others.map((i) => dayShort(plan.days[i].weekday)).join(', '))}
+        </Checkbox>
+      ) : null}
+
+      {slot.type !== 'snack' ? (
+        <button
+          type="button"
+          className={`alt alt-out ${entry?.out ? 'is-current' : ''}`}
+          aria-current={entry?.out ? 'true' : undefined}
+          onClick={() => choose({ out: true })}
+        >
+          <span className="alt-name">
+            <Icon name="bowl" size={20} />
+            {slot.atWork ? L.outCanteen : L.outAway}
+          </span>
+          <span className="small">{L.outPick(outKcal)}</span>
+          {entry?.out ? (
+            <span className="tag">
+              <Icon name="check" size={16} /> {L.currentTag}
+            </span>
+          ) : null}
+        </button>
+      ) : null}
+
+      <div className="chip-row" role="group" aria-label={T().recipes.levelAria}>
+        {([0, 1, 2, 3] as const).map((l) => (
+          <button
+            key={l}
+            type="button"
+            className={`chip ${level === l ? 'is-on' : ''}`}
+            aria-pressed={level === l}
+            onClick={() => setLevel(l)}
+          >
+            {level === l ? <Icon name="check" size={16} /> : null}
+            {l ? (
+              <>
+                <LevelBars level={l} />
+                {T().levels[l].title}
+              </>
+            ) : (
+              L.levelAll
+            )}
+          </button>
+        ))}
+      </div>
+
+      {fits.length ? (
+        <>
+          <h3 className="pick-head">{L.fitsTitle(fits.length)}</h3>
+          <OptionList items={fits} onPick={(id) => choose({ recipe: id })} />
+        </>
+      ) : null}
+
+      {rest.length ? (
+        <>
+          {fits.length ? (
+            <button type="button" className="btn btn-ghost pick-more" aria-expanded={showRest} onClick={() => setMore(!more)}>
+              <Icon name={showRest ? 'chevronUp' : 'chevronDown'} />
+              {L.otherTitle(rest.length)}
+            </button>
+          ) : (
+            <h3 className="pick-head">{L.otherTitle(rest.length)}</h3>
+          )}
+          {showRest ? (
+            <>
+              <p className="small muted">{L.otherHint}</p>
+              <OptionList items={rest} onPick={(id) => choose({ recipe: id })} />
+            </>
+          ) : null}
+        </>
+      ) : null}
+
+      {!shown.length ? <p>{L.swapNone}</p> : null}
+
+      {entry ? (
+        <button type="button" className="btn btn-ghost pick-remove" onClick={() => choose(null)}>
+          <Icon name="close" />
+          {L.remove}
+        </button>
+      ) : null}
     </Sheet>
+  );
+}
+
+function OptionList({ items, onPick }: { items: SlotOption[]; onPick: (id: string) => void }) {
+  const L = T().menu;
+  const noteText: Record<OptionNote, string> = { level: L.noteLevel, time: L.noteTime, portable: L.notePortable };
+  return (
+    <ul className="alt-list">
+      {items.map((a) => (
+        <li key={a.recipe.id}>
+          <button
+            type="button"
+            className={`alt ${a.current ? 'is-current' : ''}`}
+            aria-current={a.current ? 'true' : undefined}
+            onClick={() => onPick(a.recipe.id)}
+          >
+            <span className="alt-name">{trRecipe(a.recipe).name}</span>
+            <span className="meal-meta">
+              <LevelBadge level={a.recipe.level} />
+              <span className="meta-item">
+                <Icon name="clock" size={16} />
+                {minutesText(a.recipe.totalMin)}
+              </span>
+              <span className="meta-item num">
+                {Math.round(a.kcal)} {T().units.kcal} · {T().units.proteinShort} {Math.round(a.protein)} {T().units.g}
+              </span>
+            </span>
+            {a.notes.length ? (
+              <span className="alt-notes">
+                {a.notes.map((n) => (
+                  <span key={n} className="alt-note">
+                    <Icon name={NOTE_ICON[n]} size={16} />
+                    {noteText[n]}
+                  </span>
+                ))}
+              </span>
+            ) : null}
+            {a.current ? (
+              <span className="tag">
+                <Icon name="check" size={16} /> {L.currentTag}
+              </span>
+            ) : null}
+          </button>
+        </li>
+      ))}
+    </ul>
   );
 }
 

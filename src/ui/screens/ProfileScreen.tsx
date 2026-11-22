@@ -208,9 +208,14 @@ export function ProfileScreen() {
           {L.remote}
         </Toggle>
         {!draft.remote ? (
-          <Toggle id="mw-work" checked={draft.microwaveAtWork} onChange={(v) => set('microwaveAtWork', v)}>
-            {L.microwaveAtWork}
-          </Toggle>
+          <>
+            <Toggle id="mw-work" checked={draft.microwaveAtWork} onChange={(v) => set('microwaveAtWork', v)}>
+              {L.microwaveAtWork}
+            </Toggle>
+            <Toggle id="canteen" checked={draft.canteen} onChange={(v) => set('canteen', v)}>
+              {L.canteen}
+            </Toggle>
+          </>
         ) : null}
         <div className="field-grid">
           <TimeField id="wake" label={L.wake} value={draft.wake} onChange={(v) => set('wake', v)} />

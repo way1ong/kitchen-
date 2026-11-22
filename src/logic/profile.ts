@@ -41,6 +41,8 @@ export interface Profile {
   weekendSleep: string;
   meals: MealsPerDay;
   microwaveAtWork: boolean;
+  /** Обідаю в їдальні на роботі (у денну зміну обід не готуємо й не беремо з собою) */
+  canteen: boolean;
   equipment: Equipment[];
   maxLevel: Level;
   /** Скільки хвилин готові готувати в будні / вихідні */
@@ -75,6 +77,7 @@ export const DEFAULT_PROFILE: Profile = {
   weekendSleep: '00:00',
   meals: 4,
   microwaveAtWork: true,
+  canteen: false,
   equipment: ['microwave', 'airfryer', 'stove', 'oven', 'kettle'],
   maxLevel: 2,
   cookWeekday: 30,

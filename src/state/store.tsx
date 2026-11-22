@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { DEFAULT_PROFILE, type Profile } from '../logic/profile';
-import { generatePlan, swapEntry, type Plan } from '../logic/planner';
+import { fillEmpty as fillEmptySlots, generatePlan, setEntry, type MealChoice, type Plan } from '../logic/planner';
 import { isoDate, parseIso, weekStart } from '../logic/dates';
 import { newSeed } from '../logic/rng';
 import { RECIPE_BY_ID } from '../data/recipes';
@@ -73,7 +73,11 @@ function validPlan(x: unknown): x is Plan {
     typeof p.weekStart === 'string' &&
     Array.isArray(p.days) &&
     p.days.length === 7 &&
-    p.days.every((d) => Array.isArray(d.entries) && d.entries.every((e) => !!RECIPE_BY_ID[e.recipe]))
+    p.days.every(
+      (d) =>
+        Array.isArray(d.entries) &&
+        d.entries.every((e) => (e.out ? typeof e.out.kcal === 'number' : !!RECIPE_BY_ID[e.recipe])),
+    )
   );
 }
 
@@ -120,8 +124,12 @@ interface Store {
   recipeCtx: RecipeContext | null;
   setRecipeCtx: (c: RecipeContext | null) => void;
   saveProfile: (p: Profile, regenerate: boolean) => void;
-  newPlan: () => void;
-  swap: (dayIndex: number, slot: string, recipeId: string) => void;
+  /** Нове меню: скласти автоматично або почати з порожнього й обрати страви самому */
+  newPlan: (mode?: 'auto' | 'empty') => void;
+  /** Обрати страву (або «поза домом», або прибрати — null) на прийом їжі; alsoDays — ті самі прийоми в інші дні */
+  pick: (dayIndex: number, slot: string, choice: MealChoice, alsoDays?: number[]) => void;
+  /** Заповнити порожні прийоми автоматично */
+  fillEmpty: () => void;
   toggleChecked: (productId: string) => void;
   clearChecked: () => void;
   setShopDays: (days: number[]) => void;
@@ -166,12 +174,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const newPlan = useCallback(() => {
-    setData((d) => ({ ...d, plan: generatePlan(d.profile, weekStart(new Date()), newSeed()) }));
+  const newPlan = useCallback((mode: 'auto' | 'empty' = 'auto') => {
+    setData((d) => ({
+      ...d,
+      plan: generatePlan(d.profile, weekStart(new Date()), newSeed(), undefined, { empty: mode === 'empty' }),
+    }));
   }, []);
 
-  const swap = useCallback((dayIndex: number, slot: string, recipeId: string) => {
-    setData((d) => (d.plan ? { ...d, plan: swapEntry(d.plan, dayIndex, slot, recipeId, d.profile) } : d));
+  const pick = useCallback((dayIndex: number, slot: string, choice: MealChoice, alsoDays: number[] = []) => {
+    setData((d) => {
+      if (!d.plan) return d;
+      let plan = d.plan;
+      for (const i of [dayIndex, ...alsoDays.filter((x) => x !== dayIndex)]) plan = setEntry(plan, i, slot, choice, d.profile);
+      return { ...d, plan };
+    });
+  }, []);
+
+  const fillEmpty = useCallback(() => {
+    setData((d) => (d.plan ? { ...d, plan: fillEmptySlots(d.plan, d.profile, newSeed()) } : d));
   }, []);
 
   const toggleChecked = useCallback((productId: string) => {
@@ -221,7 +241,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setRecipeCtx,
       saveProfile,
       newPlan,
-      swap,
+      pick,
+      fillEmpty,
       toggleChecked,
       clearChecked,
       setShopDays,
@@ -229,7 +250,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       importData,
       resetAll,
     }),
-    [data, recipeCtx, saveProfile, newPlan, swap, toggleChecked, clearChecked, setShopDays, setSettings, importData, resetAll],
+    [data, recipeCtx, saveProfile, newPlan, pick, fillEmpty, toggleChecked, clearChecked, setShopDays, setSettings, importData, resetAll],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
