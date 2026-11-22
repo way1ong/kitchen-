@@ -178,3 +178,44 @@
 - [Philips: як готувати рибу в аерогрилі](https://www.philips.co.uk/c-e/ho/articles/kitchen-appliances/kitchen-and-cooking-tips/how-to-cook-fish-in-airfryer)
 - [Haier: Air fryer cooking times](https://www.haier-europe.com/en_GB/blogs/news/air-fryer-cooking-times-a-general-guide)
 - [Cosori: Air fryer cooking times](https://cosori.com/blogs/blog/air-fryer-cooking-times)
+
+## 10. Вплив їжі на організм і «що з’їсти, коли зголоднів»
+
+**Знайдено.**
+- **Пізня їжа:**
+  - Правило «не їсти після 18:00» не дає кращого схуднення, ніж просте зменшення калорій: у дослідженнях обмеження за годинником і звичайний дефіцит калорій дали однаковий результат.
+  - Пізні прийоми їжі в невеликому рандомізованому дослідженні (Cell Metabolism, 2022) посилювали голод і змінювали гормони апетиту. Дані щодо витрат енергії суперечливі.
+  - Коли між вечерею і сном менше 3 год, шанси мати рефлюкс (печію) значно вищі: у дослідженні «випадок — контроль» відношення шансів ≈7,5.
+- **Перекус:**
+  - Дієтологи радять невеликий перекус ~150–200 ккал з білком і клітковиною (йогурт, кисломолочний сир), а за годину-дві до сну — ще менше.
+  - Справжній голод наростає поступово, емоційний приходить раптово й тягне на солодке чи жирне. Спрага може маскуватися під голод, тому проста перевірка — склянка води.
+- **Продукти:**
+  - Оброблене м’ясо МАВР/ВООЗ відносить до групи 1: кожні 50 г щодня ≈ +18 % до ризику раку кишківника. Червоне м’ясо — до групи 2A. WCRF радить до 350–500 г готового червоного м’яса на тиждень і мінімум обробленого.
+  - Ультраоброблену їжу огляд у BMJ (2024) пов’язав із 32 проблемами здоров’я, зокрема ≈50 % вищим ризиком серцево-судинної смерті. Дані переважно спостережні.
+  - Клітковина: 25–29 г на день пов’язані з на 15–30 % нижчим ризиком серцевих хвороб, інсульту, діабету 2 типу і раку кишківника (Lancet, 2019).
+  - Цукор: ВООЗ радить менше 10 % калорій із цукру, а краще до 5 % (≈25 г). У банці газованки — до 40 г цукру.
+  - Кофеїн: до 400 мг на день безпечні для здорових дорослих (EFSA). Біля сну кофеїн може погіршувати сон.
+  - Алкоголь погіршує сон, а за ВООЗ безпечної дози немає.
+
+**У додатку.**
+- Кнопка «Зголоднів? Що з’їсти зараз» визначає зону за часом до **вашого** сну: «День», «Вечір», «Пізній вечір», «Час спати» або «Нічна зміна». Для кожної зони вона дає пораду, 100–200 ккал перекусу з рецептів з урахуванням ваших обмежень і список того, чого краще уникати.
+- Додано два легкі вечірні перекуси: «Склянка кефіру з корицею» і «Огірок і морква з йогуртовим соусом».
+- У «Порадах» з’явилися розділи «Зголоднів між прийомами їжі» та «Як їжа впливає на організм». Групи «Щодня / Помірно / Рідко» позначені кружечками і текстом, без опори на колір.
+
+Джерела:
+- [Harvard Gazette: чому пізня їжа підвищує ризик набору ваги](https://news.harvard.edu/gazette/story/2022/10/study-looks-at-why-late-night-eating-increases-obesity-risk)
+- [Late isocaloric eating increases hunger… (Cell Metabolism, 2022)](https://pubmed.ncbi.nlm.nih.gov/36198293/)
+- [Association between dinner-to-bed time and GERD](https://pubmed.ncbi.nlm.nih.gov/16393212/)
+- [CSPI: Should you stop eating after 4 pm?](https://cspinet.org/article/should-you-stop-eating-after-4-pm-if-you-want-lose-extra-pounds)
+- [McGill OSS: чи працює «не їсти ввечері»](https://mcgill.ca/oss/node/9125)
+- [Healthline: здорові пізні перекуси](https://www.healthline.com/nutrition/healthy-late-night-snacks)
+- [Cleveland Clinic: Decoding your hunger](https://health.clevelandclinic.org/decoding-your-hunger-are-you-really-hungry-or-not/)
+- [МАВР: Q&A щодо червоного й обробленого м’яса](https://www.iarc.who.int/wp-content/uploads/2018/11/Monographs-QA_Vol114.pdf)
+- [WCRF: Limit red and processed meat](https://www.wcrf.org/diet-activity-and-cancer/cancer-prevention-recommendations/limit-red-and-processed-meat/)
+- [BMJ: ультраоброблена їжа і 32 проблеми здоров’я](https://bmjgroup.com/consistent-evidence-links-ultra-processed-food-to-over-30-damaging-health-outcomes/)
+- [Carbohydrate quality and human health (Lancet, 2019)](https://pubmed.ncbi.nlm.nih.gov/30638909/)
+- [ВООЗ: солодкі напої](https://www.who.int/en/news-room/detail/11-10-2016-who-urges-global-action-to-curtail-consumption-and-health-impacts-of-sugary-drinks)
+- [ВООЗ: рекомендації щодо цукру (2015)](https://who.int/news/item/04-03-2015-who-calls-on-countries-to-reduce-sugars-intake-among-adults-and-children)
+- [EUFIC: висновок EFSA щодо кофеїну](https://eufic.org/en/whats-in-food/article/efsa-opinion-on-the-safety-of-caffeine)
+- [Cleveland Clinic: алкоголь і сон](https://health.clevelandclinic.org/why-you-should-limit-alcohol-before-bed-for-better-sleep)
+
