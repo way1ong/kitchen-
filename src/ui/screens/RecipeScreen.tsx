@@ -3,7 +3,8 @@ import { getProduct } from '../../data/products';
 import { RECIPE_BY_ID } from '../../data/recipes';
 import type { Recipe, Step } from '../../data/types';
 import { amountText, fraction, minutesText } from '../../logic/format';
-import { EQUIPMENT_SHORT, LEVEL_INFO } from '../../logic/profile';
+import { trProduct, trRecipe } from '../../i18n/data';
+import { T } from '../../i18n/strings';
 import { perServing, portion } from '../../logic/recipeNutrition';
 import { useStore } from '../../state/store';
 import { Callout, Checkbox, EQUIP_ICON, LevelBadge, Stepper } from '../components';
@@ -13,7 +14,8 @@ import { TimerButton } from '../timers';
 
 export function RecipeScreen({ id }: { id: string }) {
   const { recipeCtx, data } = useStore();
-  const r = RECIPE_BY_ID[id];
+  const base = RECIPE_BY_ID[id];
+  const r = base ? trRecipe(base) : undefined;
   const ctx = recipeCtx && recipeCtx.id === id ? recipeCtx : null;
   const [servings, setServings] = useState<number>(ctx?.servings ?? r?.servings ?? 1);
   const [cooking, setCooking] = useState(false);
@@ -27,13 +29,15 @@ export function RecipeScreen({ id }: { id: string }) {
   if (!r) {
     return (
       <div className="screen">
-        <BackBar title="Рецепт не знайдено" />
-        <p>Такого рецепта немає. Можливо, посилання застаріло.</p>
+        <BackBar title={T().recipe.notFound} />
+        <p>{T().recipe.notFoundText}</p>
       </div>
     );
   }
 
   const mine = ctx?.mine ?? 1;
+  const L = T().recipe;
+  const u = T().units;
   const n1 = perServing(r);
   const nm = portion(r, mine);
 
@@ -43,29 +47,27 @@ export function RecipeScreen({ id }: { id: string }) {
       <header className="screen-head">
         <LevelBadge level={r.level} long />
         <h1>{r.name}</h1>
-        <p className="sub">{LEVEL_INFO[r.level].text}</p>
+        <p className="sub">{T().levels[r.level].text}</p>
       </header>
 
       {ctx?.leftover ? (
-        <Callout kind="temp" title="Залишки: лише розігріти">
-          Мікрохвильовка: 2–3 хв під кришкою, перемішайте на половині часу. Страва має бути гарячою по всьому об’єму: пара
-          йде з центру, а не лише з країв (термометром — 74 °C). Розігрівайте один раз.
+        <Callout kind="temp" title={L.leftoverTitle}>
+          {L.leftoverText}
         </Callout>
       ) : null}
 
       {r.steps.some((s) => s.temp) && !data.settings.thermometer ? (
-        <Callout kind="info" title="Термометра поки немає?" icon="thermometer">
-          У кожному кроці з м’ясом, рибою чи яйцями є перевірка без нього — розріз, текстура, час — і підказка за кольором.
-          Коли купите термометр, увімкніть «У мене є термометр» у профілі: він стане першим способом перевірки.
+        <Callout kind="info" title={L.noThermoTitle} icon="thermometer">
+          {L.noThermoText}
         </Callout>
       ) : null}
 
-      <section className="facts" aria-label="Коротко">
+      <section className="facts" aria-label={L.factsAria}>
         <div className="fact">
           <Icon name="clock" />
           <span>
             <b>{minutesText(r.totalMin)}</b>
-            <small>руками {minutesText(r.activeMin)}</small>
+            <small>{L.handsOn(minutesText(r.activeMin))}</small>
           </span>
         </div>
         {r.equipment.length ? (
@@ -73,7 +75,7 @@ export function RecipeScreen({ id }: { id: string }) {
             <div className="fact" key={e}>
               <Icon name={EQUIP_ICON[e]} />
               <span>
-                <b>{EQUIPMENT_SHORT[e]}</b>
+                <b>{T().equipment[e].short}</b>
               </span>
             </div>
           ))
@@ -81,7 +83,7 @@ export function RecipeScreen({ id }: { id: string }) {
           <div className="fact">
             <Icon name="bowl" />
             <span>
-              <b>Без готування</b>
+              <b>{T().common.noCook}</b>
             </span>
           </div>
         )}
@@ -89,44 +91,44 @@ export function RecipeScreen({ id }: { id: string }) {
           <div className="fact">
             <Icon name="lunchbox" />
             <span>
-              <b>Холодильник: {r.fridgeDays} {r.fridgeDays === 1 ? 'день' : 'дні'}</b>
-              {r.freezer ? <small>можна заморозити</small> : null}
+              <b>{L.fridge(r.fridgeDays)}</b>
+              {r.freezer ? <small>{L.freezer}</small> : null}
             </span>
           </div>
         ) : null}
       </section>
 
-      <section className="card nutrition" aria-label="Поживність">
-        <h2 className="h-small">{ctx ? `Ваша порція (${fraction(mine)})` : 'Одна порція'}</h2>
+      <section className="card nutrition" aria-label={L.nutritionAria}>
+        <h2 className="h-small">{ctx ? L.yourPortion(fraction(mine)) : L.onePortion}</h2>
         <dl className="nutr-grid num">
           <div>
-            <dt>Калорії</dt>
+            <dt>{L.nutr.kcal}</dt>
             <dd>
-              {Math.round(ctx ? nm.kcal : n1.kcal)} <small>ккал</small>
+              {Math.round(ctx ? nm.kcal : n1.kcal)} <small>{u.kcal}</small>
             </dd>
           </div>
           <div>
-            <dt>Білки</dt>
+            <dt>{L.nutr.protein}</dt>
             <dd>
-              {Math.round(ctx ? nm.protein : n1.protein)} <small>г</small>
+              {Math.round(ctx ? nm.protein : n1.protein)} <small>{u.g}</small>
             </dd>
           </div>
           <div>
-            <dt>Жири</dt>
+            <dt>{L.nutr.fat}</dt>
             <dd>
-              {Math.round(ctx ? nm.fat : n1.fat)} <small>г</small>
+              {Math.round(ctx ? nm.fat : n1.fat)} <small>{u.g}</small>
             </dd>
           </div>
           <div>
-            <dt>Вуглеводи</dt>
+            <dt>{L.nutr.carbs}</dt>
             <dd>
-              {Math.round(ctx ? nm.carbs : n1.carbs)} <small>г</small>
+              {Math.round(ctx ? nm.carbs : n1.carbs)} <small>{u.g}</small>
             </dd>
           </div>
           <div>
-            <dt>Клітковина</dt>
+            <dt>{L.nutr.fiber}</dt>
             <dd>
-              {Math.round(ctx ? nm.fiber : n1.fiber)} <small>г</small>
+              {Math.round(ctx ? nm.fiber : n1.fiber)} <small>{u.g}</small>
             </dd>
           </div>
         </dl>
@@ -134,28 +136,28 @@ export function RecipeScreen({ id }: { id: string }) {
 
       <section className="card" aria-labelledby="ingr-h">
         <div className="card-head">
-          <h2 id="ingr-h">Інгредієнти</h2>
+          <h2 id="ingr-h">{L.ingredients}</h2>
           <Stepper
-            label="Скільки порцій готуєте"
+            label={L.servingsAria}
             value={servings}
             onChange={setServings}
             min={0.5}
             max={12}
             step={0.5}
-            format={(v) => `${fraction(v)} порц.`}
+            format={(v) => L.servingsFmt(fraction(v))}
           />
         </div>
         {ctx?.note ? (
           <p className="muted small">
             <Icon name="info" size={16} />
-            Готуєте: {ctx.note}
+            {L.cooking(ctx.note)}
           </p>
         ) : null}
         <Ingredients r={r} servings={servings} have={have} setHave={setHave} />
       </section>
 
       <section aria-labelledby="steps-h">
-        <h2 id="steps-h">Як готувати</h2>
+        <h2 id="steps-h">{L.howTo}</h2>
         <ol className="steps">
           {r.steps.map((s, i) => (
             <li key={i} className="step">
@@ -171,7 +173,7 @@ export function RecipeScreen({ id }: { id: string }) {
       </section>
 
       {r.tip ? (
-        <Callout kind="tip" title="Порада">
+        <Callout kind="tip" title={T().common.tip}>
           {r.tip}
         </Callout>
       ) : null}
@@ -179,7 +181,7 @@ export function RecipeScreen({ id }: { id: string }) {
       <div className="sticky-cta">
         <button type="button" className="btn btn-primary btn-lg btn-block" onClick={() => setCooking(true)}>
           <Icon name="play" />
-          Готувати крок за кроком
+          {L.startCook}
         </button>
       </div>
 
@@ -197,7 +199,7 @@ function BackBar({ title }: { title: string }) {
     <div className="back-bar">
       <button type="button" className="btn btn-ghost" onClick={back}>
         <Icon name="chevronLeft" />
-        Назад
+        {T().common.back}
       </button>
       <span className="back-title">{title}</span>
     </div>
@@ -216,7 +218,7 @@ function Ingredients({
   setHave: (s: Set<number>) => void;
 }) {
   const k = servings / r.servings;
-  const rows = r.ingredients.map((ing, i) => ({ ing, i, p: getProduct(ing.p) }));
+  const rows = r.ingredients.map((ing, i) => ({ ing, i, p: trProduct(getProduct(ing.p)) }));
   const main = rows.filter((x) => !x.ing.opt && x.ing.g > 0);
   const toTaste = rows.filter((x) => !x.ing.opt && x.ing.g === 0);
   const optional = rows.filter((x) => x.ing.opt);
@@ -243,13 +245,13 @@ function Ingredients({
       </ul>
       {toTaste.length ? (
         <p className="to-taste">
-          <b>За смаком:</b> {toTaste.map((x) => x.p.name.toLowerCase() + (x.ing.note ? ` (${x.ing.note})` : '')).join(', ')}.
-          {toTaste.some((x) => x.p.id === 'salt') ? ' Солі — помірно: до ¼ ч. л. на порцію (норма ВООЗ — до 5 г на день з усім).' : ''}
+          <b>{T().recipe.toTaste}</b> {toTaste.map((x) => x.p.name.toLowerCase() + (x.ing.note ? ` (${x.ing.note})` : '')).join(', ')}.
+          {toTaste.some((x) => x.p.id === 'salt') ? T().recipe.saltNote : ''}
         </p>
       ) : null}
       {optional.length ? (
         <p className="to-taste">
-          <b>За бажанням:</b>{' '}
+          <b>{T().recipe.optional}</b>{' '}
           {optional
             .map((x) => `${x.p.name.toLowerCase()} — ${amountText(x.p, x.ing.g * k)}`)
             .join(', ')}
@@ -264,10 +266,10 @@ function StepContent({ step, recipe, index, big = false }: { step: Step; recipe:
   return (
     <>
       <p className={big ? 'step-text-big' : 'step-text'}>{step.text}</p>
-      {step.timer ? <TimerButton seconds={step.timer} label={`Крок ${index + 1} · ${recipe.name}`} big={big} /> : null}
+      {step.timer ? <TimerButton seconds={step.timer} label={T().timers.stepLabel(index + 1, recipe.name)} big={big} /> : null}
       <DoneCheck step={step} />
       {step.warn ? (
-        <Callout kind="warn" title="Обережно">
+        <Callout kind="warn" title={T().common.careful}>
           {step.warn}
         </Callout>
       ) : null}
@@ -285,30 +287,30 @@ function DoneCheck({ step }: { step: Step }) {
   const look = colorHints ? step.look : undefined;
   if (!step.temp && !look) {
     return step.done ? (
-      <Callout kind="done" title="Як зрозуміти, що готово">
+      <Callout kind="done" title={T().recipe.doneTitle}>
         {step.done}
       </Callout>
     ) : null;
   }
   type Row = { key: string; icon: IconName; title: string; text: string };
   const done: Row | null = step.done
-    ? { key: 'done', icon: 'checkCircle', title: step.temp ? 'Без термометра' : 'Ознаки', text: step.done }
+    ? { key: 'done', icon: 'checkCircle', title: step.temp ? T().recipe.noThermo : T().recipe.signs, text: step.done }
     : null;
   const temp: Row | null = step.temp
     ? {
         key: 'temp',
         icon: 'thermometer',
-        title: `Термометром: не менше ${step.temp} °C`,
+        title: T().recipe.thermoTitle(step.temp),
         text: thermometer
-          ? 'Щуп — у найтовщу частину, не торкаючись кістки й посуду. Чекайте, доки цифри перестануть рости.'
-          : 'Найнадійніший спосіб, коли з’явиться термометр. Поки що орієнтуйтеся на ознаки вище.',
+          ? T().recipe.thermoHave
+          : T().recipe.thermoNotYet,
       }
     : null;
-  const color: Row | null = look ? { key: 'look', icon: 'eye', title: 'На вигляд (колір)', text: look } : null;
+  const color: Row | null = look ? { key: 'look', icon: 'eye', title: T().recipe.lookTitle, text: look } : null;
   const rows = (thermometer ? [temp, done, color] : [done, color, temp]).filter((r): r is Row => r !== null);
   return (
-    <div className="check" role="group" aria-label="Як перевірити готовність">
-      <p className="check-title">Як перевірити готовність</p>
+    <div className="check" role="group" aria-label={T().recipe.checkTitle}>
+      <p className="check-title">{T().recipe.checkTitle}</p>
       <ul className="check-list">
         {rows.map((r) => (
           <li key={r.key} className={`check-item check-${r.key}`}>
@@ -353,18 +355,18 @@ function CookMode({ r, servings, onClose }: { r: Recipe; servings: number; onClo
   const progress = useMemo(() => Array.from({ length: total }, (_, k) => k), [total]);
 
   return (
-    <div className="cook" role="dialog" aria-modal="true" aria-label={`Готування: ${r.name}`} tabIndex={-1} ref={ref}>
+    <div className="cook" role="dialog" aria-modal="true" aria-label={T().cook.aria(r.name)} tabIndex={-1} ref={ref}>
       <div className="cook-head">
         <button type="button" className="btn btn-ghost" onClick={onClose}>
           <Icon name="close" />
-          Закрити
+          {T().common.close}
         </button>
         <span className="cook-count num">
-          Крок {i + 1} з {total}
+          {T().cook.step(i + 1, total)}
         </span>
         <button type="button" className={`btn btn-ghost ${showIng ? 'is-on' : ''}`} aria-pressed={showIng} onClick={() => setShowIng((v) => !v)}>
           <Icon name="list" />
-          Інгредієнти
+          {T().cook.ingredients}
         </button>
       </div>
       <div className="cook-progress" aria-hidden="true">
@@ -387,17 +389,17 @@ function CookMode({ r, servings, onClose }: { r: Recipe; servings: number; onClo
       <div className="cook-nav">
         <button type="button" className="btn btn-lg" onClick={() => setI((x) => Math.max(0, x - 1))} disabled={i === 0}>
           <Icon name="chevronLeft" />
-          Назад
+          {T().common.back}
         </button>
         {i < total - 1 ? (
           <button type="button" className="btn btn-primary btn-lg" onClick={() => setI((x) => x + 1)}>
-            Далі
+            {T().cook.next}
             <Icon name="chevronRight" />
           </button>
         ) : (
           <button type="button" className="btn btn-primary btn-lg" onClick={onClose}>
             <Icon name="check" />
-            Готово
+            {T().cook.done}
           </button>
         )}
       </div>

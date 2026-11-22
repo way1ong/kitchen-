@@ -3,7 +3,8 @@ import { RECIPES } from '../../data/recipes';
 import type { Equipment, Level, MealType, Recipe } from '../../data/types';
 import { minutesText } from '../../logic/format';
 import { allowedRecipe } from '../../logic/planner';
-import { LEVEL_INFO } from '../../logic/profile';
+import { trRecipe } from '../../i18n/data';
+import { T } from '../../i18n/strings';
 import { perServing } from '../../logic/recipeNutrition';
 import { useStore } from '../../state/store';
 import { EquipList, LevelBadge, LevelBars } from '../components';
@@ -12,21 +13,9 @@ import { Icon } from '../icons';
 type MealFilter = 'all' | 'breakfast' | 'main' | 'snack';
 type ToolFilter = 'all' | Equipment | 'nocook';
 
-const MEAL_FILTERS: { id: MealFilter; label: string }[] = [
-  { id: 'all', label: 'Усі' },
-  { id: 'breakfast', label: 'Сніданки' },
-  { id: 'main', label: 'Обіди й вечері' },
-  { id: 'snack', label: 'Перекуси' },
-];
+const MEAL_FILTERS: MealFilter[] = ['all', 'breakfast', 'main', 'snack'];
 
-const TOOL_FILTERS: { id: ToolFilter; label: string }[] = [
-  { id: 'all', label: 'Будь-чим' },
-  { id: 'microwave', label: 'Мікрохвильовка' },
-  { id: 'airfryer', label: 'Аерогриль' },
-  { id: 'stove', label: 'Плита' },
-  { id: 'oven', label: 'Духовка' },
-  { id: 'nocook', label: 'Без плити й духовки' },
-];
+const TOOL_FILTERS: ToolFilter[] = ['all', 'microwave', 'airfryer', 'stove', 'oven', 'nocook'];
 
 function matchesMeal(r: Recipe, f: MealFilter) {
   if (f === 'all') return true;
@@ -56,21 +45,22 @@ export function RecipesScreen() {
         matchesMeal(r, meal) &&
         matchesTool(r, tool) &&
         (!mine || allowedRecipe(r, { ...data.profile, maxLevel: 3 })) &&
-        (!q || r.name.toLowerCase().includes(q)),
+        (!q || trRecipe(r).name.toLowerCase().includes(q) || r.name.toLowerCase().includes(q)),
     );
-  }, [level, meal, tool, mine, query, data.profile]);
+  }, [level, meal, tool, mine, query, data.profile, data.settings.lang]);
 
   const counts = useMemo(() => [1, 2, 3].map((l) => RECIPES.filter((r) => r.level === l).length), []);
 
+  const L = T().recipes;
   return (
     <div className="screen">
       <header className="screen-head">
-        <p className="eyebrow">{RECIPES.length} рецептів · 3 рівні</p>
-        <h1>Рецепти</h1>
-        <p className="sub">Почніть з рівня 1 — а коли стане легко, переходьте вище.</p>
+        <p className="eyebrow">{L.eyebrow(RECIPES.length)}</p>
+        <h1>{L.title}</h1>
+        <p className="sub">{L.sub}</p>
       </header>
 
-      <div className="level-tabs" role="tablist" aria-label="Рівень складності">
+      <div className="level-tabs" role="tablist" aria-label={L.levelAria}>
         <button
           type="button"
           role="tab"
@@ -78,7 +68,7 @@ export function RecipesScreen() {
           className={`level-tab ${level === 0 ? 'is-active' : ''}`}
           onClick={() => setLevel(0)}
         >
-          <span className="level-tab-title">Усі</span>
+          <span className="level-tab-title">{L.all}</span>
           <span className="level-tab-count num">{RECIPES.length}</span>
         </button>
         {([1, 2, 3] as Level[]).map((l) => (
@@ -91,12 +81,12 @@ export function RecipesScreen() {
             onClick={() => setLevel(l)}
           >
             <LevelBars level={l} size={18} />
-            <span className="level-tab-title">{LEVEL_INFO[l].title}</span>
+            <span className="level-tab-title">{T().levels[l].title}</span>
             <span className="level-tab-count num">{counts[l - 1]}</span>
           </button>
         ))}
       </div>
-      {level ? <p className="level-desc">{LEVEL_INFO[level].text}</p> : null}
+      {level ? <p className="level-desc">{T().levels[level].text}</p> : null}
 
       <div className="filters">
         <label className="search">
@@ -104,43 +94,43 @@ export function RecipesScreen() {
           <input
             id="recipe-search"
             type="search"
-            placeholder="Пошук: гречка, курка, сирники…"
+            placeholder={L.search}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
         </label>
-        <div className="chip-row" role="group" aria-label="Прийом їжі">
+        <div className="chip-row" role="group" aria-label={L.mealAria}>
           {MEAL_FILTERS.map((f) => (
             <button
-              key={f.id}
+              key={f}
               type="button"
-              className={`chip ${meal === f.id ? 'is-on' : ''}`}
-              aria-pressed={meal === f.id}
-              onClick={() => setMeal(f.id)}
+              className={`chip ${meal === f ? 'is-on' : ''}`}
+              aria-pressed={meal === f}
+              onClick={() => setMeal(f)}
             >
-              {meal === f.id ? <Icon name="check" size={16} /> : null}
-              {f.label}
+              {meal === f ? <Icon name="check" size={16} /> : null}
+              {L.meals[f]}
             </button>
           ))}
         </div>
-        <div className="chip-row" role="group" aria-label="Чим готувати">
+        <div className="chip-row" role="group" aria-label={L.toolAria}>
           {TOOL_FILTERS.map((f) => (
             <button
-              key={f.id}
+              key={f}
               type="button"
-              className={`chip ${tool === f.id ? 'is-on' : ''}`}
-              aria-pressed={tool === f.id}
-              onClick={() => setTool(f.id)}
+              className={`chip ${tool === f ? 'is-on' : ''}`}
+              aria-pressed={tool === f}
+              onClick={() => setTool(f)}
             >
-              {tool === f.id ? <Icon name="check" size={16} /> : null}
-              {f.label}
+              {tool === f ? <Icon name="check" size={16} /> : null}
+              {L.tools[f]}
             </button>
           ))}
         </div>
         <label className="switch">
           <input id="only-mine" type="checkbox" checked={mine} onChange={(e) => setMine(e.target.checked)} />
           <span className="switch-ui" aria-hidden="true" />
-          <span>Лише те, що можу приготувати (моє обладнання й обмеження)</span>
+          <span>{L.onlyMine}</span>
         </label>
       </div>
 
@@ -159,14 +149,17 @@ export function RecipesScreen() {
           ))}
         </ul>
       ) : (
-        <p className="empty">Нічого не знайдено. Змініть фільтри або вимкніть «Лише те, що можу приготувати».</p>
+        <p className="empty">{L.empty}</p>
       )}
     </div>
   );
 }
 
-function RecipeCard({ r, onOpen }: { r: Recipe; onOpen: () => void }) {
+function RecipeCard({ r: base, onOpen }: { r: Recipe; onOpen: () => void }) {
+  const r = trRecipe(base);
   const n = perServing(r);
+  const L = T().recipes;
+  const u = T().units;
   return (
     <button type="button" className={`recipe-card lvl-${r.level}`} onClick={onOpen}>
       <span className="recipe-card-top">
@@ -178,34 +171,34 @@ function RecipeCard({ r, onOpen }: { r: Recipe; onOpen: () => void }) {
         <span className="meta-item">
           <Icon name="clock" size={16} />
           {minutesText(r.totalMin)}
-          {r.activeMin < r.totalMin ? <span className="muted"> (руками {r.activeMin})</span> : null}
+          {r.activeMin < r.totalMin ? <span className="muted">{L.handsOn(minutesText(r.activeMin))}</span> : null}
         </span>
       </span>
       <span className="meal-nums num">
         <span>
-          <b>{Math.round(n.kcal)}</b> ккал
+          <b>{Math.round(n.kcal)}</b> {u.kcal}
         </span>
         <span>
-          Б <b>{Math.round(n.protein)}</b> г
+          {u.proteinShort} <b>{Math.round(n.protein)}</b> {u.g}
         </span>
         <span>
-          на <b>1</b> порцію
+          {L.perPortion}
         </span>
       </span>
       <span className="tag-row">
         {r.tags.includes('lunchbox') ? (
           <span className="tag">
-            <Icon name="lunchbox" size={16} /> З собою
+            <Icon name="lunchbox" size={16} /> {L.tagTakeAway}
           </span>
         ) : null}
         {r.tags.includes('prep-ahead') ? (
           <span className="tag">
-            <Icon name="feather" size={16} /> З вечора
+            <Icon name="feather" size={16} /> {L.tagPrepAhead}
           </span>
         ) : null}
         {r.tags.includes('batch') ? (
           <span className="tag">
-            <Icon name="repeat" size={16} /> На 2–3 дні
+            <Icon name="repeat" size={16} /> {L.tagBatch}
           </span>
         ) : null}
       </span>

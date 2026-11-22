@@ -1,9 +1,13 @@
-export const DAY_SHORT = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
-export const DAY_FULL = ['Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П’ятниця', 'Субота', 'Неділя'];
-const MONTH_GEN = [
-  'січня', 'лютого', 'березня', 'квітня', 'травня', 'червня',
-  'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня',
-];
+import { T } from '../i18n/strings';
+
+/** Коротка назва дня: 1 = понеділок … 7 = неділя. */
+export function dayShort(weekday: number): string {
+  return T().days.short[weekday - 1];
+}
+
+export function dayFull(weekday: number): string {
+  return T().days.full[weekday - 1];
+}
 
 /** 1 = понеділок … 7 = неділя */
 export function weekday(d: Date): number {
@@ -34,7 +38,7 @@ export function weekStart(d: Date): Date {
   return addDays(x, -(weekday(x) - 1));
 }
 
-/** «23 листопада» */
+/** «23 листопада» / «november 23.» */
 export function dayMonth(d: Date): string {
-  return `${d.getDate()} ${MONTH_GEN[d.getMonth()]}`;
+  return T().dayMonth(d.getDate(), d.getMonth());
 }

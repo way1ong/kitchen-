@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { StoreProvider } from '../state/store';
+import { StoreProvider, useStore } from '../state/store';
+import { T } from '../i18n/strings';
 import { Icon, type IconName } from './icons';
 import { lastTabName, rememberTab, useRoute, type TabName } from './nav';
 import { GuideScreen } from './screens/GuideScreen';
@@ -10,12 +11,12 @@ import { RecipesScreen } from './screens/RecipesScreen';
 import { ShoppingScreen } from './screens/ShoppingScreen';
 import { TimerDock, TimerProvider } from './timers';
 
-const TABS: { id: TabName; label: string; icon: IconName }[] = [
-  { id: 'menu', label: 'Меню', icon: 'calendar' },
-  { id: 'recipes', label: 'Рецепти', icon: 'book' },
-  { id: 'shopping', label: 'Покупки', icon: 'basket' },
-  { id: 'guide', label: 'Поради', icon: 'bulb' },
-  { id: 'profile', label: 'Профіль', icon: 'user' },
+const TABS: { id: TabName; icon: IconName }[] = [
+  { id: 'menu', icon: 'calendar' },
+  { id: 'recipes', icon: 'book' },
+  { id: 'shopping', icon: 'basket' },
+  { id: 'guide', icon: 'bulb' },
+  { id: 'profile', icon: 'user' },
 ];
 
 export function App() {
@@ -29,6 +30,7 @@ export function App() {
 }
 
 function Shell() {
+  useStore(); // підписка на зміну мови й налаштувань
   const route = useRoute();
   useEffect(() => {
     if (route.name !== 'recipe') rememberTab(route.name);
@@ -62,11 +64,11 @@ function Shell() {
         {screen}
       </main>
       <TimerDock />
-      <nav className="tabbar" aria-label="Розділи">
+      <nav className="tabbar" aria-label={T().tabs.nav}>
         {TABS.map((t) => (
           <a key={t.id} href={`#${t.id}`} className={`tab ${active === t.id ? 'is-active' : ''}`} aria-current={active === t.id ? 'page' : undefined}>
             <Icon name={t.icon} size={24} />
-            <span>{t.label}</span>
+            <span>{T().tabs[t.id]}</span>
           </a>
         ))}
       </nav>

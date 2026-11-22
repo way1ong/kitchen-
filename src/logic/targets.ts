@@ -74,13 +74,6 @@ export function bmiCategory(bmi: number): BmiCategory {
   return 'obese';
 }
 
-export const BMI_LABEL: Record<BmiCategory, string> = {
-  under: 'нижче норми',
-  normal: 'в межах норми',
-  over: 'вище норми',
-  obese: 'значно вище норми',
-};
-
 const round = (n: number, step = 1) => Math.round(n / step) * step;
 
 export function computeTargets(p: Profile): Targets {

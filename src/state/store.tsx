@@ -4,6 +4,8 @@ import { generatePlan, swapEntry, type Plan } from '../logic/planner';
 import { isoDate, parseIso, weekStart } from '../logic/dates';
 import { newSeed } from '../logic/rng';
 import { RECIPE_BY_ID } from '../data/recipes';
+import { detectLang, setLang, type Lang } from '../i18n';
+import { T } from '../i18n/strings';
 
 /**
  * Стан додатку. Усе зберігається лише на цьому пристрої (localStorage):
@@ -18,6 +20,8 @@ export interface Settings {
   thermometer: boolean;
   /** Показувати підказки за кольором («На вигляд») */
   colorHints: boolean;
+  /** Мова інтерфейсу */
+  lang: Lang;
 }
 
 export interface AppData {
@@ -58,7 +62,7 @@ function defaults(): AppData {
     plan: null,
     checked: {},
     shopDays: [0, 1, 2, 3, 4, 5, 6],
-    settings: { font: 0, theme: 'auto', thermometer: false, colorHints: true },
+    settings: { font: 0, theme: 'auto', thermometer: false, colorHints: true, lang: detectLang() },
   };
 }
 
@@ -86,7 +90,7 @@ export function sanitize(raw: unknown): AppData | null {
     plan: validPlan(r.plan) ? r.plan : null,
     checked: r.checked && typeof r.checked === 'object' ? r.checked : {},
     shopDays: Array.isArray(r.shopDays) ? r.shopDays.filter((n) => n >= 0 && n < 7) : base.shopDays,
-    settings: { ...base.settings, ...(r.settings ?? {}) },
+    settings: { ...base.settings, ...(r.settings ?? {}), lang: r.settings?.lang === 'hu' || r.settings?.lang === 'uk' ? r.settings.lang : base.settings.lang },
   };
 }
 
@@ -131,6 +135,8 @@ const Ctx = createContext<Store | null>(null);
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<AppData>(init);
   const [recipeCtx, setRecipeCtx] = useState<RecipeContext | null>(null);
+  // Мову встановлюємо до рендеру дочірніх компонентів, щоб усі бачили однакову
+  setLang(data.settings.lang);
   const first = useRef(true);
 
   useEffect(() => {
@@ -145,6 +151,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const root = document.documentElement;
+    root.lang = data.settings.lang;
+    document.title = T().appName;
     root.dataset.font = String(data.settings.font);
     if (data.settings.theme === 'auto') delete root.dataset.theme;
     else root.dataset.theme = data.settings.theme;

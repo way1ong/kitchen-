@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { clock, plural, timerLabel } from '../logic/format';
+import { clock, timerLabel } from '../logic/format';
+import { T } from '../i18n/strings';
 import { Icon } from './icons';
 
 /**
@@ -183,10 +184,10 @@ export function TimerButton({ seconds, label, big = false }: { seconds: number; 
         type="button"
         className={`btn btn-timer ${size}`}
         onClick={() => start(label, seconds)}
-        aria-label={`Запустити таймер на ${timerLabel(seconds)}: ${label}`}
+        aria-label={T().timers.start(timerLabel(seconds), label)}
       >
         <Icon name="timer" />
-        Таймер · {timerLabel(seconds)}
+        {T().timers.one(timerLabel(seconds))}
       </button>
     );
   }
@@ -194,7 +195,7 @@ export function TimerButton({ seconds, label, big = false }: { seconds: number; 
     return (
       <button type="button" className={`btn btn-timer is-done ${size}`} onClick={() => remove(t.id)}>
         <Icon name="bell" />
-        Готово — вимкнути
+        {T().timers.doneOff}
       </button>
     );
   }
@@ -204,10 +205,10 @@ export function TimerButton({ seconds, label, big = false }: { seconds: number; 
       type="button"
       className={`btn btn-timer is-running ${size}`}
       onClick={() => toggle(t.id)}
-      aria-label={paused ? 'Продовжити таймер' : 'Поставити таймер на паузу'}
+      aria-label={paused ? T().timers.resumeAria : T().timers.pauseAria}
     >
       <Icon name={paused ? 'play' : 'pause'} />
-      {paused ? 'Пауза' : 'Іде'} · <span className="num">{clock(remaining(t, now))}</span>
+      {paused ? T().timers.pause : T().timers.running} · <span className="num">{clock(remaining(t, now))}</span>
     </button>
   );
 }
@@ -224,25 +225,25 @@ function TimerChip({ t, now }: { t: KitchenTimer; now: number }) {
       <span className="timer-text">
         <span className="timer-label">{t.label}</span>
         <span className="timer-time num">
-          {t.done ? 'Готово! Перевірте страву' : paused ? `Пауза · ${clock(left)}` : clock(left)}
+          {t.done ? T().timers.done : paused ? T().timers.paused(clock(left)) : clock(left)}
         </span>
       </span>
       <span className="timer-actions">
         {!t.done ? (
-          <button type="button" className="icon-btn" onClick={() => toggle(t.id)} aria-label={paused ? 'Продовжити' : 'Пауза'}>
+          <button type="button" className="icon-btn" onClick={() => toggle(t.id)} aria-label={paused ? T().timers.resume : T().timers.pause}>
             <Icon name={paused ? 'play' : 'pause'} />
           </button>
         ) : null}
-        <button type="button" className="chip-btn" onClick={() => addMinute(t.id)} aria-label="Додати хвилину">
-          +1 хв
+        <button type="button" className="chip-btn" onClick={() => addMinute(t.id)} aria-label={T().timers.addMinute}>
+          {T().timers.plusMinute}
         </button>
         <button
           type="button"
           className={t.done ? 'btn btn-primary btn-sm' : 'icon-btn'}
           onClick={() => remove(t.id)}
-          aria-label={t.done ? 'Вимкнути сигнал' : 'Скасувати таймер'}
+          aria-label={t.done ? T().timers.stopAlarm : T().timers.cancel}
         >
-          {t.done ? 'Вимкнути' : <Icon name="close" />}
+          {t.done ? T().timers.off : <Icon name="close" />}
         </button>
       </span>
     </div>
@@ -263,7 +264,7 @@ export function TimerDock() {
   const rest = sorted.length - 1;
   const shown = open ? sorted : sorted.slice(0, 1);
   return (
-    <section className="timer-dock" aria-label="Таймери">
+    <section className="timer-dock" aria-label={T().timers.dock}>
       <div className={`timer-list ${open ? 'is-open' : ''}`}>
         {shown.map((t) => (
           <TimerChip key={t.id} t={t} now={now} />
@@ -273,12 +274,12 @@ export function TimerDock() {
         <div className="timer-more">
           {open ? (
             <button type="button" className="chip-btn" onClick={() => sorted.forEach((t) => remove(t.id))}>
-              Скасувати всі
+              {T().timers.cancelAll}
             </button>
           ) : null}
           <button type="button" className="chip-btn" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
             <Icon name={open ? 'chevronDown' : 'chevronUp'} size={18} />
-            {open ? 'Згорнути' : `Ще ${rest} ${plural(rest, ['таймер', 'таймери', 'таймерів'])}`}
+            {open ? T().timers.collapse : T().timers.more(rest)}
           </button>
         </div>
       ) : null}

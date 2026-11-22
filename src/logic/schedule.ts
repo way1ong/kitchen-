@@ -14,10 +14,38 @@ import { parseHHMM } from './format';
 
 export type DayKind = 'day' | 'evening' | 'night' | 'off';
 
+/** Ключі назв прийомів їжі (текст — у src/i18n/strings.ts). */
+export type SlotLabelKey =
+  | 'breakfast'
+  | 'snack'
+  | 'snackMorning'
+  | 'snackAfternoon'
+  | 'lunch'
+  | 'dinner'
+  | 'lunchBeforeWork'
+  | 'dinnerAtWork'
+  | 'lightSnack'
+  | 'breakfastAfterSleep'
+  | 'mainBeforeShift'
+  | 'mealOnShift'
+  | 'snackOnShift'
+  | 'lightBreakfastAfterShift';
+
+export type SlotHintKey =
+  | 'breakfastQuick'
+  | 'breakfastTakeAway'
+  | 'lateDinner'
+  | 'mainMealOfDay'
+  | 'smallBeforeSleep'
+  | 'shiftEnergy'
+  | 'shiftMealBefore1'
+  | 'shiftLight'
+  | 'afterShiftSleep';
+
 export interface Slot {
   key: string;
   type: MealType;
-  label: string;
+  label: SlotLabelKey;
   /** Хвилини від півночі дня, коли прокинулись (може бути > 1440). */
   time: number;
   /** Частка добових калорій. */
@@ -25,7 +53,7 @@ export interface Slot {
   /** Не вдома (на роботі або в дорозі) — потрібен контейнер. */
   atWork: boolean;
   light?: boolean;
-  hint?: string;
+  hint?: SlotHintKey;
 }
 
 export interface DaySchedule {
@@ -93,14 +121,14 @@ function dayShiftSlots(W: number, S: number, n: MealsPerDay, w: WorkWindow | nul
 
   // Сніданок
   let bT = W + 30;
-  let bHint: string | undefined;
+  let bHint: SlotHintKey | undefined;
   if (w && !w.remote && bT > leave - 10) {
     if (W + 15 <= leave - 5) {
       bT = W + 15;
-      bHint = 'Часу мало — швидкий сніданок або підготовлений з вечора';
+      bHint = 'breakfastQuick';
     } else {
       bT = w.A + 30;
-      bHint = 'Вдома не встигнете — візьміть сніданок із собою';
+      bHint = 'breakfastTakeAway';
     }
   }
 
@@ -121,33 +149,33 @@ function dayShiftSlots(W: number, S: number, n: MealsPerDay, w: WorkWindow | nul
   const B: Slot = {
     key: 'b',
     type: 'breakfast',
-    label: 'Сніданок',
+    label: 'breakfast',
     time: r15(bT),
     share: 0,
     atWork: away(bT, w),
     hint: bHint,
   };
-  const L: Slot = { key: 'l', type: 'lunch', label: 'Обід', time: lT, share: 0, atWork: away(lT, w) };
+  const L: Slot = { key: 'l', type: 'lunch', label: 'lunch', time: lT, share: 0, atWork: away(lT, w) };
   const D: Slot = {
     key: 'd',
     type: 'dinner',
-    label: 'Вечеря',
+    label: 'dinner',
     time: dT,
     share: 0,
     atWork: false,
     light: dLight,
-    hint: dLight ? 'Пізно повертаєтесь — вечеря легша, більше калорій удень' : undefined,
+    hint: dLight ? 'lateDinner' : undefined,
   };
 
   const slots: Slot[] = [B];
   if (n === 5) {
     const t = r15((B.time + L.time) / 2);
-    slots.push({ key: 's1', type: 'snack', label: 'Перекус', time: t, share: 0, atWork: away(t, w) });
+    slots.push({ key: 's1', type: 'snack', label: 'snackMorning', time: t, share: 0, atWork: away(t, w) });
   }
   slots.push(L);
   if (n >= 4) {
     const t = r15((L.time + D.time) / 2);
-    slots.push({ key: 's2', type: 'snack', label: 'Перекус', time: t, share: 0, atWork: away(t, w) });
+    slots.push({ key: 's2', type: 'snack', label: 'snackAfternoon', time: t, share: 0, atWork: away(t, w) });
   }
   slots.push(D);
 
@@ -173,24 +201,24 @@ function eveningShiftSlots(W: number, S: number, n: MealsPerDay, w: WorkWindow):
   const lT = r15(Math.max(bT + 180, leave - 60));
   const dT = r30((w.A + w.B) / 2);
 
-  const slots: Slot[] = [{ key: 'b', type: 'breakfast', label: 'Сніданок', time: bT, share: 0, atWork: false }];
+  const slots: Slot[] = [{ key: 'b', type: 'breakfast', label: 'breakfast', time: bT, share: 0, atWork: false }];
   if (n === 5 || (n === 4 && lT - bT >= 240)) {
     const t = r15((bT + lT) / 2);
-    slots.push({ key: 's1', type: 'snack', label: 'Перекус', time: t, share: 0, atWork: away(t, w) });
+    slots.push({ key: 's1', type: 'snack', label: 'snackMorning', time: t, share: 0, atWork: away(t, w) });
   }
   slots.push({
     key: 'l',
     type: 'lunch',
-    label: 'Обід перед роботою',
+    label: 'lunchBeforeWork',
     time: lT,
     share: 0,
     atWork: away(lT, w),
-    hint: 'Основний прийом їжі дня',
+    hint: 'mainMealOfDay',
   });
   slots.push({
     key: 'd',
     type: 'dinner',
-    label: 'Вечеря на роботі',
+    label: 'dinnerAtWork',
     time: dT,
     share: 0,
     atWork: !w.remote,
@@ -201,12 +229,12 @@ function eveningShiftSlots(W: number, S: number, n: MealsPerDay, w: WorkWindow):
     slots.push({
       key: 's2',
       type: 'snack',
-      label: 'Легкий перекус',
+      label: 'lightSnack',
       time: t,
       share: 0,
       atWork: away(t, w),
       light: true,
-      hint: 'Невелика порція перед сном',
+      hint: 'smallBeforeSleep',
     });
   }
 
@@ -230,51 +258,51 @@ function nightShiftSlots(W: number, S: number, n: MealsPerDay, w: WorkWindow): S
   const postT = r15(Math.min(back + 15, S - 30));
 
   const slots: Slot[] = [
-    { key: 'b', type: 'breakfast', label: 'Сніданок після сну', time: bT, share: 0, atWork: false },
+    { key: 'b', type: 'breakfast', label: 'breakfastAfterSleep', time: bT, share: 0, atWork: false },
   ];
   if (n === 5) {
     const t = r15((bT + mainT) / 2);
-    slots.push({ key: 's1', type: 'snack', label: 'Перекус', time: t, share: 0, atWork: false });
+    slots.push({ key: 's1', type: 'snack', label: 'snack', time: t, share: 0, atWork: false });
   }
   slots.push({
     key: 'd',
     type: 'dinner',
-    label: 'Основна їжа перед зміною',
+    label: 'mainBeforeShift',
     time: mainT,
     share: 0,
     atWork: away(mainT, w),
-    hint: 'Білок і повільні вуглеводи — енергія на всю зміну',
+    hint: 'shiftEnergy',
   });
   if (n === 3) {
     slots.push({
       key: 'l',
       type: 'lunch',
-      label: 'Їжа на зміні',
+      label: 'mealOnShift',
       time: snackT,
       share: 0,
       atWork: !w.remote,
-      hint: 'Краще до 01:00; з 00:00 до 06:00 організм гірше перетравлює їжу',
+      hint: 'shiftMealBefore1',
     });
   } else {
     slots.push({
       key: 's2',
       type: 'snack',
-      label: 'Перекус на зміні',
+      label: 'snackOnShift',
       time: snackT,
       share: 0,
       atWork: !w.remote,
       light: true,
-      hint: 'Легко: з 00:00 до 06:00 організм гірше перетравлює їжу',
+      hint: 'shiftLight',
     });
     slots.push({
       key: 'p',
       type: 'breakfast',
-      label: 'Легкий сніданок після зміни',
+      label: 'lightBreakfastAfterShift',
       time: postT,
       share: 0,
       atWork: false,
       light: true,
-      hint: 'Невелика порція, щоб добре заснути',
+      hint: 'afterShiftSleep',
     });
   }
 

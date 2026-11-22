@@ -91,7 +91,7 @@ describe('розклад під графік роботи', () => {
   it('нічна зміна 22–06: основна їжа перед зміною, легкий перекус на роботі', () => {
     const s = daySchedule(P({ workStart: '22:00', workEnd: '06:00', wake: '14:00', sleep: '08:00' }), 1);
     expect(s.kind).toBe('night');
-    const main = s.slots.find((x) => x.label.includes('перед зміною'))!;
+    const main = s.slots.find((x) => x.label === 'mainBeforeShift')!;
     expect(main.time).toBeLessThan(22 * 60);
     const atWork = s.slots.filter((x) => x.atWork);
     expect(atWork.length).toBe(1);
