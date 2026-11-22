@@ -41,7 +41,8 @@ def main() -> None:
         data = (src / 'final' / it['file']).read_bytes()
         name = f"{it['id']}.{hashlib.sha256(data).hexdigest()[:8]}.webp"
         (out / name).write_bytes(data)
-        rows.append({**it, 'file': name, 'license': lic, 'author': ' '.join(it['author'].split())})
+        url = (it.get('licenseUrl') or '').replace('http://', 'https://')
+        rows.append({**it, 'file': name, 'license': lic, 'licenseUrl': url, 'author': ' '.join(it['author'].split())})
 
     q = lambda s: json.dumps(s, ensure_ascii=False)  # noqa: E731
     ts = (ROOT / 'src' / 'data' / 'photos.ts').read_text(encoding='utf-8')
