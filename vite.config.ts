@@ -1,6 +1,7 @@
 import type { Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import { PHOTOS, photoUrl } from './src/data/photos';
 
 /**
  * Режим «artifact»: React підключається з CDN (cdnjs) глобальними змінними,
@@ -9,7 +10,7 @@ import react from '@vitejs/plugin-react';
 function reactGlobals(): Plugin {
   const map: Record<string, string> = {
     react: `const R = window.React; export default R;
-export const { Children, Fragment, StrictMode, createContext, createElement, useCallback, useContext, useEffect, useId, useMemo, useRef, useState } = R;`,
+export const { Children, Fragment, StrictMode, createContext, createElement, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } = R;`,
     'react/jsx-runtime': `const R = window.React; export const Fragment = R.Fragment;
 export function jsx(type, props, key) { return R.createElement(type, key === undefined ? props : Object.assign({}, props, { key: key })); }
 export const jsxs = jsx;`,
@@ -36,15 +37,35 @@ function serviceWorker(): Plugin {
     apply: 'build',
     generateBundle(_opts, bundle) {
       const files = Object.keys(bundle).filter((f) => !f.endsWith('.map'));
+      // Фото страв (public/photos): у назві — хеш вмісту, тож кеш оновлюється лише за зміни фото
+      const photos = Object.values(PHOTOS)
+        .map((p) => `./${photoUrl(p)}`)
+        .sort();
       const assets = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png', ...files.map((f) => `./${f}`)];
       const version = Date.now().toString(36);
       const code = `const CACHE = 'gotuyu-sam-${version}';
+const PHOTO_CACHE = 'gotuyu-sam-photos';
 const ASSETS = ${JSON.stringify([...new Set(assets)])};
+const PHOTOS = ${JSON.stringify(photos)};
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  e.waitUntil(
+    Promise.all([
+      caches.open(CACHE).then((c) => c.addAll(ASSETS)),
+      // Фото — в окремому кеші: після оновлення додатка завантажуються лише нові
+      caches.open(PHOTO_CACHE).then((c) => Promise.all(PHOTOS.map((u) => c.match(u).then((hit) => hit || c.add(u).catch(() => undefined))))),
+    ]).then(() => self.skipWaiting()),
+  );
 });
 self.addEventListener('activate', (e) => {
-  e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
+  const keep = new Set(PHOTOS.map((u) => new URL(u, self.location.href).href));
+  e.waitUntil(
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE && k !== PHOTO_CACHE).map((k) => caches.delete(k))))
+      .then(() => caches.open(PHOTO_CACHE))
+      .then((c) => c.keys().then((reqs) => Promise.all(reqs.filter((r) => !keep.has(r.url)).map((r) => c.delete(r)))))
+      .then(() => self.clients.claim()),
+  );
 });
 self.addEventListener('fetch', (e) => {
   const req = e.request;

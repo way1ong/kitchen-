@@ -211,6 +211,13 @@ const P: Record<string, ReactNode> = {
       <path d="M7 14h7M10 9.5h6" />
     </>
   ),
+  camera: (
+    <>
+      <path d="M4 8.5A1.5 1.5 0 0 1 5.5 7h2.2l1.6-2.2h5.4L16.3 7h2.2A1.5 1.5 0 0 1 20 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5z" />
+      <circle cx="12" cy="12.8" r="3.4" />
+    </>
+  ),
+  trash: <path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12M10.5 10.5v5.5M13.5 10.5v5.5" />,
 };
 
 export type IconName = keyof typeof P;

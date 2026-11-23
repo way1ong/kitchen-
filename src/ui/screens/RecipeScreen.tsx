@@ -11,6 +11,7 @@ import { Callout, Checkbox, EQUIP_ICON, LevelBadge, Stepper } from '../component
 import { Icon, type IconName } from '../icons';
 import { canGoBack, lastTabName } from '../nav';
 import { TimerButton } from '../timers';
+import { DishPhotoBlock } from '../photos';
 
 export function RecipeScreen({ id }: { id: string }) {
   const { recipeCtx, data } = useStore();
@@ -49,6 +50,8 @@ export function RecipeScreen({ id }: { id: string }) {
         <h1>{r.name}</h1>
         <p className="sub">{T().levels[r.level].text}</p>
       </header>
+
+      <DishPhotoBlock id={r.id} name={r.name} />
 
       {ctx?.leftover ? (
         <Callout kind="temp" title={L.leftoverTitle}>

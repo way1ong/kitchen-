@@ -27,6 +27,7 @@ import { planDate, planIsCurrentWeek, useStore, type RecipeContext } from '../..
 import { Banner, Checkbox, ConfirmButton, EquipList, LevelBadge, LevelBars, Meter, Sheet } from '../components';
 import { Icon, type IconName } from '../icons';
 import { HungerHelper } from '../HungerHelper';
+import { DishThumb } from '../photos';
 import { go } from '../nav';
 
 /** Контекст для сторінки рецепта: скільки готувати і яка ваша порція. */
@@ -435,25 +436,30 @@ function MealCard({
     <article className={`meal ${entry.leftoverFrom !== undefined ? 'is-leftover' : ''}`}>
       <MealTime slot={slot} />
       <button type="button" className="meal-main" onClick={openRecipe}>
-        <h3>{trRecipe(r).name}</h3>
-        <span className="meal-meta">
-          <LevelBadge level={r.level} />
-          <span className="meta-item">
-            <Icon name="clock" size={16} />
-            {entry.leftoverFrom !== undefined ? L.reheat : minutesText(r.totalMin)}
+        <span className="with-thumb">
+          <span className="with-thumb-text">
+            <h3>{trRecipe(r).name}</h3>
+            <span className="meal-meta">
+              <LevelBadge level={r.level} />
+              <span className="meta-item">
+                <Icon name="clock" size={16} />
+                {entry.leftoverFrom !== undefined ? L.reheat : minutesText(r.totalMin)}
+              </span>
+              <EquipList recipe={r} />
+            </span>
+            <span className="meal-nums num">
+              <span>
+                <b>{Math.round(n.kcal)}</b> {T().units.kcal}
+              </span>
+              <span>
+                {T().units.proteinShort} <b>{Math.round(n.protein)}</b> {T().units.g}
+              </span>
+              <span>
+                {T().common.portion} <b>{fraction(entry.mult)}</b>
+              </span>
+            </span>
           </span>
-          <EquipList recipe={r} />
-        </span>
-        <span className="meal-nums num">
-          <span>
-            <b>{Math.round(n.kcal)}</b> {T().units.kcal}
-          </span>
-          <span>
-            {T().units.proteinShort} <b>{Math.round(n.protein)}</b> {T().units.g}
-          </span>
-          <span>
-            {T().common.portion} <b>{fraction(entry.mult)}</b>
-          </span>
+          <DishThumb id={r.id} size={72} />
         </span>
         {entry.leftoverFrom !== undefined ? (
           <span className="tag">
@@ -656,16 +662,21 @@ function OptionList({ items, onPick }: { items: SlotOption[]; onPick: (id: strin
             aria-current={a.current ? 'true' : undefined}
             onClick={() => onPick(a.recipe.id)}
           >
-            <span className="alt-name">{trRecipe(a.recipe).name}</span>
-            <span className="meal-meta">
-              <LevelBadge level={a.recipe.level} />
-              <span className="meta-item">
-                <Icon name="clock" size={16} />
-                {minutesText(a.recipe.totalMin)}
+            <span className="with-thumb">
+              <span className="with-thumb-text">
+                <span className="alt-name">{trRecipe(a.recipe).name}</span>
+                <span className="meal-meta">
+                  <LevelBadge level={a.recipe.level} />
+                  <span className="meta-item">
+                    <Icon name="clock" size={16} />
+                    {minutesText(a.recipe.totalMin)}
+                  </span>
+                  <span className="meta-item num">
+                    {Math.round(a.kcal)} {T().units.kcal} · {T().units.proteinShort} {Math.round(a.protein)} {T().units.g}
+                  </span>
+                </span>
               </span>
-              <span className="meta-item num">
-                {Math.round(a.kcal)} {T().units.kcal} · {T().units.proteinShort} {Math.round(a.protein)} {T().units.g}
-              </span>
+              <DishThumb id={a.recipe.id} size={60} />
             </span>
             {a.notes.length ? (
               <span className="alt-notes">

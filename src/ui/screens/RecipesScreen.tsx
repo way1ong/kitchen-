@@ -9,6 +9,7 @@ import { perServing } from '../../logic/recipeNutrition';
 import { useStore } from '../../state/store';
 import { EquipList, LevelBadge, LevelBars } from '../components';
 import { Icon } from '../icons';
+import { DishThumb } from '../photos';
 
 type MealFilter = 'all' | 'breakfast' | 'main' | 'snack';
 type ToolFilter = 'all' | Equipment | 'nocook';
@@ -166,24 +167,27 @@ function RecipeCard({ r: base, onOpen }: { r: Recipe; onOpen: () => void }) {
         <LevelBadge level={r.level} />
         <EquipList recipe={r} />
       </span>
-      <span className="recipe-card-name">{r.name}</span>
-      <span className="meal-meta">
-        <span className="meta-item">
-          <Icon name="clock" size={16} />
-          {minutesText(r.totalMin)}
-          {r.activeMin < r.totalMin ? <span className="muted">{L.handsOn(minutesText(r.activeMin))}</span> : null}
+      <span className="with-thumb">
+        <span className="with-thumb-text">
+          <span className="recipe-card-name">{r.name}</span>
+          <span className="meal-meta">
+            <span className="meta-item">
+              <Icon name="clock" size={16} />
+              {minutesText(r.totalMin)}
+              {r.activeMin < r.totalMin ? <span className="muted">{L.handsOn(minutesText(r.activeMin))}</span> : null}
+            </span>
+          </span>
+          <span className="meal-nums num">
+            <span>
+              <b>{Math.round(n.kcal)}</b> {u.kcal}
+            </span>
+            <span>
+              {u.proteinShort} <b>{Math.round(n.protein)}</b> {u.g}
+            </span>
+            <span>{L.perPortion}</span>
+          </span>
         </span>
-      </span>
-      <span className="meal-nums num">
-        <span>
-          <b>{Math.round(n.kcal)}</b> {u.kcal}
-        </span>
-        <span>
-          {u.proteinShort} <b>{Math.round(n.protein)}</b> {u.g}
-        </span>
-        <span>
-          {L.perPortion}
-        </span>
+        <DishThumb id={r.id} size={88} />
       </span>
       <span className="tag-row">
         {r.tags.includes('lunchbox') ? (
